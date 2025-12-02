@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FrameSync – Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const wrapper = document.querySelector('.avatar-status-wrapper');
+    const menu = wrapper.querySelector('.status-menu');
+
+    wrapper.addEventListener('click', e => {
+      e.stopPropagation();
+      menu.classList.toggle('show');
+    });
+
+    wrapper.querySelectorAll('.status-option').forEach(opt => {
+      opt.addEventListener('click', () => {
+        const status = opt.dataset.status;
+
+        document.body.className = document.body.className.replace(/status-\w+/g, '');
+        document.body.classList.add('status-' + status);
+
+        localStorage.setItem('userStatus', status);
+        menu.classList.remove('show');
+      });
+    });
+
+    const saved = localStorage.getItem('userStatus') || 'available';
+    document.body.classList.add('status-' + saved);
+
+    document.addEventListener('click', () => menu.classList.remove('show'));
+  });
+</script>
+
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="logo"><a href="dashboard.html">FrameSync</a></div>
+
+    <div class="nav-links">
+      <a href="dashboard.html" class="active">Home</a>
+      <a href="public.html">Public</a>
+      <a href="room.html">Room</a>
+      <a href="contact.html">Contact</a>
+      <a href="profile.html">Profile</a>
+    </div>
+
+    <div class="nav-actions">
+      <div class="avatar-status-wrapper">
+        <img src="https://via.placeholder.com/40" alt="Avatar" class="avatar">
+        <div class="status-indicator"></div>
+
+        <div class="status-menu">
+          <div class="status-option" data-status="available">Available</div>
+          <div class="status-option" data-status="watching">Watching</div>
+          <div class="status-option" data-status="dnd">Do not disturb</div>
+          <div class="status-option" data-status="silent">Silent</div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+
+  <!-- DASHBOARD CONTENT -->
+  <div class="container dashboard">
+
+    <!-- HERO -->
+    <div class="hero-guide mandatory">
+      <h2 class="hero-title">
+        <span class="hero-brand">FrameSync</span>
+        <span class="hero-separator">—</span>
+        <span class="hero-subtitle">Watch together. Anywhere.</span>
+      </h2>
+      <p class="hero-description">Watch together in real-time — smooth, synced, secure.</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="icon">1</div>
+          <h4>Create or Join</h4>
+          <p>Get a 6-letter code</p>
+        </div>
+
+        <div class="step">
+          <div class="icon">2</div>
+          <h4>Paste Video</h4>
+          <p>YouTube, MP4, Drive</p>
+        </div>
+
+        <div class="step">
+          <div class="icon">3</div>
+          <h4>Sync & React</h4>
+          <p>Host controls, you react</p>
+        </div>
+
+        <div class="step">
+          <div class="icon">4</div>
+          <h4>Get Recap</h4>
+          <p>30-sec highlight video</p>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- 4 CARDS -->
+    <div class="unique-grid">
+      <div class="card">
+        <h3>Today's Pick</h3>
+        <p>No recommendations yet.</p>
+        <button onclick="location.href='room.html'">Watch Now</button>
+      </div>
+
+      <div class="card">
+        <h3>Trending in Circle</h3>
+        <p>No trending rooms.</p>
+      </div>
+
+      <div class="card">
+        <h3>Movie Clock</h3>
+        <p>0h 0m synced</p>
+      </div>
+
+      <div class="card">
+        <h3>Reaction Leader</h3>
+        <p>Start watching to react!</p>
+      </div>
+    </div>
+
+    <!-- ACTION BUTTONS -->
+    <div class="quick-actions">
+      <button class="create-btn" onclick="openCreateModal()">Create New Room</button>
+      <button class="join-btn" onclick="promptJoin()">Join with Code</button>
+    </div>
+
+  </div>
+
+
+
+  <!-- CREATE ROOM MODAL -->
+  <div id="create-modal" class="modal">
+    <div class="modal-content">
+      <h2>Create Room</h2>
+
+      <!-- Toggle -->
+      <div style="display:flex; justify-content:center; gap:10px; margin-bottom:15px;">
+        <button id="btn-private" onclick="setRoomType('private')" class="tab-btn active"
+          style="padding:8px 16px; font-size:0.9rem;">Private</button>
+        <button id="btn-public" onclick="setRoomType('public')" class="tab-btn"
+          style="padding:8px 16px; font-size:0.9rem; background:transparent; border:1px solid #444; color:#aaa;">Public</button>
+      </div>
+
+      <div id="public-options" style="display:none; margin-bottom:15px;">
+        <p><strong>Room Name:</strong></p>
+        <input type="text" id="room-name-input" placeholder="e.g. Movie Night" style="width:100%; margin-top:5px;">
+      </div>
+
+      <p><strong>Room Capacity:</strong></p>
+
+      <div class="capacity-options">
+        <label class="capacity-card">
+          <input type="radio" name="capacity" value="2" checked>
+          <span>2</span>
+        </label>
+        <label class="capacity-card">
+          <input type="radio" name="capacity" value="4">
+          <span>4</span>
+        </label>
+        <label class="capacity-card">
+          <input type="radio" name="capacity" value="8">
+          <span>8</span>
+        </label>
+        <label class="capacity-card">
+          <input type="radio" name="capacity" value="16">
+          <span>16</span>
+        </label>
+      </div>
+
+      <button onclick="createRoomWithCapacity()" style="margin-top:20px;">Create</button>
+    </div>
+  </div>
+
+
+
+  <!-- SUCCESS MODAL -->
+  <div id="success-modal" class="modal">
+    <div class="modal-content">
+      <h2>Your Room is Ready!</h2>
+
+      <p><strong>Code:</strong> <span id="room-code"></span></p>
+      <p><strong>Share Link:</strong> <span id="room-link"></span></p>
+
+      <button onclick="copyCode()">Copy Code</button>
+      <button onclick="copyLink()">Copy Link</button>
+      <button onclick="goToRoom()">Go to Room</button>
+    </div>
+  </div>
+
+
+
+
+
+  <!-- ROOM OPTIONS MODAL -->
+  <div id="room-options-modal" class="modal">
+    <div class="modal-content" style="text-align:center;">
+      <h2>Select an Option</h2>
+      <div style="display:flex; gap:20px; justify-content:center; margin-top:20px;">
+        <button class="create-btn" onclick="openCreateModalFromOptions()"
+          style="padding:20px 40px; font-size:1.2rem;">Create Room</button>
+        <button class="join-btn" onclick="promptJoinFromOptions()" style="padding:20px 40px; font-size:1.2rem;">Join
+          Room</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    if (localStorage.getItem('isLoggedIn') !== 'true') location.href = 'index.html';
+
+    // Initialize Socket for Create Room events
+    const socket = io();
+
+    let currentCode = '';
+    let roomType = 'private';
+
+    function setRoomType(type) {
+      roomType = type;
+      const btnPrivate = document.getElementById('btn-private');
+      const btnPublic = document.getElementById('btn-public');
+      const publicOptions = document.getElementById('public-options');
+
+      if (type === 'private') {
+        btnPrivate.classList.add('active');
+        btnPrivate.style.background = 'var(--accent)';
+        btnPrivate.style.color = 'white';
+        btnPrivate.style.border = 'none';
+
+        btnPublic.classList.remove('active');
+        btnPublic.style.background = 'transparent';
+        btnPublic.style.color = '#aaa';
+        btnPublic.style.border = '1px solid #444';
+
+        publicOptions.style.display = 'none';
+      } else {
+        btnPublic.classList.add('active');
+        btnPublic.style.background = 'var(--accent)';
+        btnPublic.style.color = 'white';
+        btnPublic.style.border = 'none';
+
+        btnPrivate.classList.remove('active');
+        btnPrivate.style.background = 'transparent';
+        btnPrivate.style.color = '#aaa';
+        btnPrivate.style.border = '1px solid #444';
+
+        publicOptions.style.display = 'block';
+      }
+    }
+
+    // Navbar Room Link Handler
+    document.querySelector('a[href="room.html"]').addEventListener('click', (e) => {
+      e.preventDefault();
+      document.getElementById('room-options-modal').style.display = 'flex';
+    });
+
+    function openCreateModal() {
+      document.getElementById('create-modal').style.display = 'flex';
+    }
+
+    function openCreateModalFromOptions() {
+      document.getElementById('room-options-modal').style.display = 'none';
+      openCreateModal();
+    }
+
+    function createRoomWithCapacity() {
+      currentCode = 'FRM' + Math.random().toString(36).substr(2, 3).toUpperCase();
+      const capacity = document.querySelector('input[name="capacity"]:checked').value;
+      const userName = localStorage.getItem('userName') || 'Host';
+
+      // Set Host Flag
+      sessionStorage.setItem('isHost', 'true');
+
+      if (roomType === 'public') {
+        const roomName = document.getElementById('room-name-input').value.trim();
+        if (!roomName) return alert("Please enter a room name for public rooms.");
+
+        // Emit to server to register public room
+        socket.emit('createRoom', {
+          roomCode: currentCode,
+          type: 'public',
+          name: roomName,
+          capacity: capacity,
+          userName: userName
+        });
+
+        // Redirect directly for public rooms
+        location.href = `room.html?code=${currentCode}`;
+
+      } else {
+        // Private Room - Show Success Modal
+        document.getElementById('room-code').innerText = currentCode;
+        document.getElementById('room-link').innerText = `framesync.in/room/${currentCode}`;
+
+        document.getElementById('create-modal').style.display = 'none';
+        document.getElementById('success-modal').style.display = 'flex';
+      }
+    }
+
+    function copyCode() {
+      navigator.clipboard.writeText(currentCode);
+      alert('Code copied!');
+    }
+
+    function copyLink() {
+      navigator.clipboard.writeText(`framesync.in/room/${currentCode}`);
+      alert('Link copied!');
+    }
+
+    function goToRoom() {
+      location.href = `room.html?code=${currentCode}`;
+    }
+
+    function promptJoin() {
+      const code = prompt('Enter Room Code:')?.trim().toUpperCase();
+
+      if (code && code.length === 6) {
+        sessionStorage.setItem('isHost', 'false'); // Ensure guest
+        location.href = `room.html?code=${code}`;
+      } else if (code) {
+        alert('Invalid code! Must be 6 letters.');
+      }
+    }
+
+    function promptJoinFromOptions() {
+      document.getElementById('room-options-modal').style.display = 'none';
+      promptJoin();
+    }
+
+    window.onclick = e => {
+      if (e.target.classList.contains('modal')) e.target.style.display = 'none';
+    };
+  </script>
+
+</body>
+
+</html>

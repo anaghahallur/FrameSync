@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FrameSync – Welcome</title>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;700;800;900&display=swap');
+
+    /* ------------------------------------------------------
+   FRAME SYNC — PROFESSIONAL OTT THEME
+   Black • Dark Grey • Netflix Red
+   (Welcome / Login / Signup Page)
+-------------------------------------------------------- */
+
+    :root {
+      --bg-main: #0A0A0A;
+      /* pure black */
+      --bg-card: #141414;
+      /* Netflix card grey */
+      --bg-panel: #1A1A1A;
+
+      --text-main: #FFFFFF;
+      --text-muted: #B3B3B3;
+
+      --accent: #E50914;
+      /* Netflix red */
+      --accent-hover: #F6121D;
+
+      --border: #2A2A2A;
+
+      --shadow-soft: 0 2px 12px rgba(0, 0, 0, 0.55);
+    }
+
+    /* RESET */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: radial-gradient(circle at top, rgba(229, 9, 20, 0.08), transparent 45%) , var(--bg-main);
+      min-height: 100vh;
+      font-family: 'Inter', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      color: var(--text-main);
+      position: relative;
+      overflow: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 20% 20%, rgba(229, 9, 20, 0.08), transparent 55%);
+      opacity: 0.8;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container,
+    .card,
+    .form-screen {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* -----------------------------------------
+   MAIN WELCOME CARD
+------------------------------------------ */
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 24px;
+      padding: 60px 45px;
+      text-align: center;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.45);
+      transition: transform 0.35s ease, box-shadow 0.35s ease;
+      position: relative;
+      overflow: hidden;
+      z-index: 0;
+    }
+
+    .card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 35px 80px rgba(0, 0, 0, 0.65);
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, rgba(229, 9, 20, 0.08), transparent 60%);
+      opacity: 0.8;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .card > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* LOGO */
+    .hero-name {
+      font-size: 3.2rem;
+      font-weight: 900;
+      letter-spacing: 0.1rem;
+      margin-bottom: 16px;
+      color: var(--text-main);
+      text-transform: none;
+    }
+
+    .hero-name::after {
+      content: '';
+      display: block;
+      width: 80px;
+      height: 2px;
+      margin: 16px auto 0;
+      background: linear-gradient(90deg, var(--accent), transparent);
+      opacity: 0.7;
+    }
+
+    /* HEADINGS */
+    h1 {
+      font-size: 2.7rem;
+      font-weight: 900;
+      color: var(--accent);
+    }
+
+    .tagline {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.25rem;
+      text-transform: uppercase;
+      padding: 0.45rem 1.1rem;
+      border-radius: 999px;
+      background: rgba(229, 9, 20, 0.12);
+      color: var(--text-main);
+    }
+
+    .tagline::before,
+    .tagline::after {
+      content: '';
+      width: 16px;
+      height: 2px;
+      background: rgba(229, 9, 20, 0.6);
+      border-radius: 1px;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      margin-top: 18px;
+      margin-bottom: 40px;
+      max-width: 320px;
+      margin-left: auto;
+      margin-right: auto;
+      line-height: 1.6;
+    }
+
+    /* PRIMARY ACTIONS */
+    .primary-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      margin-bottom: 34px;
+    }
+
+    .primary-btn {
+      background: radial-gradient(circle at top, rgba(229, 9, 20, 0.14), transparent 65%);
+      border: 1px solid rgba(229, 9, 20, 0.55);
+      color: var(--accent);
+      padding: 16px 36px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .primary-btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(229, 9, 20, 0.35), rgba(246, 18, 29, 0.08));
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+
+    .primary-btn:hover {
+      color: #fff;
+      border-color: var(--accent);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(229, 9, 20, 0.25);
+    }
+
+    .primary-btn:hover::after {
+      opacity: 1;
+    }
+
+    .google-buttons {
+      position: absolute;
+      inset: -9999px;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* FOOTER */
+    .footer {
+      margin-top: 40px;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <!-- MAIN WELCOME SCREEN -->
+  <div class="container">
+    <div class="card" id="welcome-card">
+      <h1 class="hero-name">FrameSync</h1>
+      <div class="tagline">Watch Together</div>
+      <p class="subtitle">Perfectly synced YouTube rooms with friends</p>
+
+      <div class="primary-actions">
+        <button class="primary-btn" id="primary-signup">Sign Up</button>
+        <button class="primary-btn" id="primary-signin">Sign In</button>
+      </div>
+
+      <div class="google-buttons">
+        <div id="signup_button"></div>
+        <div id="login_button"></div>
+      </div>
+
+      <div class="footer">One click • Secure • No password needed with Google</div>
+    </div>
+  </div>
+
+  <script>
+    function handleCredentialResponse(response) {
+      const data = JSON.parse(atob(response.credential.split('.')[1]));
+      localStorage.setItem("userName", data.name);
+      localStorage.setItem("userEmail", data.email);
+      localStorage.setItem("userAvatar", data.picture);
+      localStorage.setItem("isLoggedIn", "true");
+      location.href = "dashboard.html";
+    }
+
+    function triggerGoogleFlow(type) {
+      const selector = type === 'signup' ? '#signup_button div[role="button"]' : '#login_button div[role="button"]';
+      const target = document.querySelector(selector);
+      if (target) {
+        target.focus();
+        target.click();
+      } else {
+        alert('Google sign-in is still loading. Please try again in a moment.');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('primary-signup').addEventListener('click', () => triggerGoogleFlow('signup'));
+      document.getElementById('primary-signin').addEventListener('click', () => triggerGoogleFlow('signin'));
+    });
+
+    window.onload = () => {
+      google.accounts.id.initialize({
+        client_id: "459591232868-cctp2i8f5bmpo3gi0um028esg56ifqrr.apps.googleusercontent.com",
+        callback: handleCredentialResponse
+      });
+      google.accounts.id.renderButton(document.getElementById("signup_button"), { theme: "filled_blue", size: "large", text: "signup_with", shape: "pill" });
+      google.accounts.id.renderButton(document.getElementById("login_button"), { theme: "outline", size: "large", text: "signin_with", shape: "pill" });
+
+      if (localStorage.getItem("isLoggedIn") === "true") location.href = "dashboard.html";
+    };
+  </script>
+</body>
+
+</html>

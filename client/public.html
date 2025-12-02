@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FrameSync – Public Rooms</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* ==========================================================
+   PUBLIC ROOMS — PROFESSIONAL OTT THEME
+   Black • Dark Grey • Scarlet Red • Clean UI
+========================================================== */
+
+    :root {
+      --bg-main: #0A0A0A;
+      --bg-card: #141414;
+      --bg-panel: #1A1A1A;
+
+      --text-main: #FFFFFF;
+      --text-muted: #B3B3B3;
+
+      --accent: #E50914;
+      --accent-hover: #F6121D;
+
+      --border: #2A2A2A;
+    }
+
+    /* BODY */
+    body {
+      background: var(--bg-main);
+      margin: 0;
+      font-family: "Inter", sans-serif;
+      color: var(--text-main);
+    }
+
+    /* PAGE TITLE */
+    .container h1 {
+      color: var(--accent);
+      font-size: 2.2rem;
+      font-weight: 900;
+      margin-bottom: 1.6rem;
+    }
+
+    /* FILTERS */
+    .filters {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.6rem;
+    }
+
+    .filters select {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: 0.25s ease;
+    }
+
+    .filters select:focus {
+      border-color: var(--accent);
+    }
+
+    /* TABS */
+    .tabs {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      margin-bottom: 2rem;
+    }
+
+    .tab {
+      background: var(--bg-panel);
+      padding: 10px 24px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      cursor: pointer;
+      font-weight: 700;
+      transition: 0.25s ease;
+    }
+
+    .tab:hover {
+      color: var(--accent);
+      background: #1F1F1F;
+    }
+
+    .tab.active {
+      color: var(--accent);
+      background: #1F1F1F;
+      border-color: var(--accent);
+    }
+
+    /* ROOM GRID */
+    .room-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.5rem;
+    }
+
+    /* ROOM CARD */
+    .room-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      transition: 0.25s ease;
+    }
+
+    .room-card:hover {
+      background: #1B1B1B;
+    }
+
+    .room-card h4 {
+      color: var(--accent);
+      font-size: 1.2rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* LIVE badge */
+    .live-badge {
+      background: var(--accent);
+      color: #fff;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    /* ROOM TEXT */
+    .room-card p {
+      color: var(--text-muted);
+      margin: 6px 0;
+      font-size: 0.95rem;
+    }
+
+    /* JOIN BUTTON (RENAMED TO AVOID CONFLICT) */
+    .card-join-btn {
+      width: 100%;
+      padding: 12px 16px;
+      background: var(--accent);
+      color: white;
+      border-radius: 8px;
+      font-weight: 800;
+      font-size: 1rem;
+      cursor: pointer;
+      border: none;
+      transition: 0.25s ease;
+      margin-top: 1rem;
+    }
+
+    .card-join-btn:hover {
+      background: var(--accent-hover);
+    }
+
+    /* NO ROOMS */
+    .room-grid p {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      padding: 2rem 0;
+      grid-column: 1/-1;
+    }
+
+    /* MOBILE */
+    @media (max-width: 600px) {
+      .filters {
+        flex-direction: column;
+      }
+
+      .filters select {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- SINGLE NAVBAR ONLY -->
+  <nav class="navbar">
+    <div class="logo"><a href="dashboard.html">FrameSync</a></div>
+
+    <div class="nav-links">
+      <a href="dashboard.html">Home</a>
+      <a href="public.html" class="active">Public</a>
+      <a href="room.html">Room</a>
+      <a href="contact.html">Contact</a>
+      <a href="profile.html">Profile</a>
+    </div>
+
+    <div class="nav-actions">
+      <div class="avatar-status-wrapper">
+        <img src="" alt="Avatar" class="avatar" id="navbar-avatar">
+        <div class="status-indicator"></div>
+        <div class="status-menu">
+          <div class="status-option" data-status="available">Available</div>
+          <div class="status-option" data-status="watching">Watching</div>
+          <div class="status-option" data-status="dnd">Do not disturb</div>
+          <div class="status-option" data-status="silent">Silent</div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <h1>Public Rooms</h1>
+
+    <div class="filters">
+      <select id="genre">
+        <option>Bollywood</option>
+        <option>Hollywood</option>
+        <option>Anime</option>
+      </select>
+      <select id="lang">
+        <option>Hindi</option>
+        <option>English</option>
+        <option>Tamil</option>
+      </select>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="showTab('trending')">Trending</button>
+      <button class="tab" onclick="showTab('friends')">Friend Rooms</button>
+      <button class="tab" onclick="showTab('soon')">Starting Soon</button>
+    </div>
+
+    <div class="room-grid" id="room-container"></div>
+  </div>
+
+  <!-- CREATE ROOM MODAL -->
+  <div id="create-modal" class="modal">
+    <div class="modal-content">
+      <h2>Create Room</h2>
+
+      <!-- Toggle -->
+      <div style="display:flex; justify-content:center; gap:10px; margin-bottom:15px;">
+        <button id="btn-private" onclick="setRoomType('private')" class="tab-btn active"
+          style="padding:8px 16px; font-size:0.9rem; background:var(--accent); color:white; border:none;">Private</button>
+        <button id="btn-public" onclick="setRoomType('public')" class="tab-btn"
+          style="padding:8px 16px; font-size:0.9rem; background:transparent; border:1px solid #444; color:#aaa;">Public</button>
+      </div>
+
+      <div id="public-options" style="display:none; margin-bottom:15px;">
+        <p><strong>Room Name:</strong></p>
+        <input type="text" id="room-name-input" placeholder="e.g. Movie Night" style="width:100%; margin-top:5px;">
+      </div>
+
+      <p><strong>Room Capacity:</strong></p>
+      <div class="capacity-options">
+        <label class="capacity-card">
+          <input type="radio" name="capacity" value="2" checked>
+          <span>2</span>
+        </label>
+        <label class="capacity-card">
+          <input type="radio" name="capacity" value="4">
+          <span>4</span>
+        </label>
+        <label class="capacity-card">
+          <input type="radio" name="capacity" value="8">
+          <span>8</span>
+        </label>
+        <label class="capacity-card">
+          <input type="radio" name="capacity" value="16">
+          <span>16</span>
+        </label>
+      </div>
+      <button onclick="createRoomWithCapacity()">Create</button>
+    </div>
+  </div>
+
+  <!-- SUCCESS MODAL -->
+  <div id="success-modal" class="modal">
+    <div class="modal-content">
+      <h2>Your Room is Ready!</h2>
+      <p><strong>Code:</strong> <span id="room-code"></span></p>
+      <p><strong>Share Link:</strong> <span id="room-link"></span></p>
+      <button onclick="copyCode()">Copy Code</button>
+      <button onclick="copyLink()">Copy Link</button>
+      <button onclick="goToRoom()">Go to Room</button>
+    </div>
+  </div>
+
+  <!-- ROOM OPTIONS MODAL -->
+  <div id="room-options-modal" class="modal">
+    <div class="modal-content" style="text-align:center;">
+      <h2>Select an Option</h2>
+      <div style="display:flex; gap:20px; justify-content:center; margin-top:20px;">
+        <button class="create-btn" onclick="openCreateModalFromOptions()"
+          style="padding:20px 40px; font-size:1.2rem;">Create Room</button>
+        <button class="join-btn" onclick="promptJoinFromOptions()" style="padding:20px 40px; font-size:1.2rem;">Join
+          Room</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+
+    // Load avatar
+    const savedAvatar = localStorage.getItem('userAvatar') || 'https://via.placeholder.com/40/111/fff?text=A';
+    document.getElementById('navbar-avatar').src = savedAvatar;
+
+    // Status selector
+    document.addEventListener('DOMContentLoaded', () => {
+      const wrapper = document.querySelector('.avatar-status-wrapper');
+      const menu = wrapper.querySelector('.status-menu');
+      wrapper.addEventListener('click', e => { e.stopPropagation(); menu.classList.toggle('show'); });
+      wrapper.querySelectorAll('.status-option').forEach(opt => {
+        opt.addEventListener('click', () => {
+          const status = opt.dataset.status;
+          document.body.className = document.body.className.replace(/status-\w+/g, '');
+          document.body.classList.add('status-' + status);
+          localStorage.setItem('userStatus', status);
+          menu.classList.remove('show');
+        });
+      });
+      document.body.classList.add('status-' + (localStorage.getItem('userStatus') || 'available'));
+      document.addEventListener('click', () => menu.classList.remove('show'));
+
+      // Fetch public rooms
+      socket.emit('getPublicRooms');
+    });
+
+    // --- NAVIGATION LOGIC ---
+    let currentCode = '';
+    let roomType = 'private';
+
+    function setRoomType(type) {
+      roomType = type;
+      const btnPrivate = document.getElementById('btn-private');
+      const btnPublic = document.getElementById('btn-public');
+      const publicOptions = document.getElementById('public-options');
+
+      if (type === 'private') {
+        btnPrivate.classList.add('active');
+        btnPrivate.style.background = 'var(--accent)';
+        btnPrivate.style.color = 'white';
+        btnPrivate.style.border = 'none';
+
+        btnPublic.classList.remove('active');
+        btnPublic.style.background = 'transparent';
+        btnPublic.style.color = '#aaa';
+        btnPublic.style.border = '1px solid #444';
+
+        publicOptions.style.display = 'none';
+      } else {
+        btnPublic.classList.add('active');
+        btnPublic.style.background = 'var(--accent)';
+        btnPublic.style.color = 'white';
+        btnPublic.style.border = 'none';
+
+        btnPrivate.classList.remove('active');
+        btnPrivate.style.background = 'transparent';
+        btnPrivate.style.color = '#aaa';
+        btnPrivate.style.border = '1px solid #444';
+
+        publicOptions.style.display = 'block';
+      }
+    }
+
+    // Navbar Room Link Handler
+    document.querySelector('a[href="room.html"]').addEventListener('click', (e) => {
+      e.preventDefault();
+      document.getElementById('room-options-modal').style.display = 'flex';
+    });
+
+    function openCreateModal() {
+      document.getElementById('create-modal').style.display = 'flex';
+    }
+
+    function openCreateModalFromOptions() {
+      document.getElementById('room-options-modal').style.display = 'none';
+      openCreateModal();
+    }
+
+    function createRoomWithCapacity() {
+      currentCode = 'FRM' + Math.random().toString(36).substr(2, 3).toUpperCase();
+      const capacity = document.querySelector('input[name="capacity"]:checked').value;
+      const userName = localStorage.getItem('userName') || 'Host';
+
+      sessionStorage.setItem('isHost', 'true'); // Use sessionStorage
+
+      if (roomType === 'public') {
+        const roomName = document.getElementById('room-name-input').value.trim();
+        if (!roomName) return alert("Please enter a room name for public rooms.");
+
+        socket.emit('createRoom', {
+          roomCode: currentCode,
+          type: 'public',
+          name: roomName,
+          capacity: capacity,
+          userName: userName
+        });
+        location.href = `room.html?code=${currentCode}`;
+      } else {
+        document.getElementById('room-code').innerText = currentCode;
+        document.getElementById('room-link').innerText = `framesync.in/room/${currentCode}`;
+        document.getElementById('create-modal').style.display = 'none';
+        document.getElementById('success-modal').style.display = 'flex';
+      }
+    }
+
+    function copyCode() {
+      navigator.clipboard.writeText(currentCode);
+      alert('Code copied!');
+    }
+
+    function copyLink() {
+      navigator.clipboard.writeText(`framesync.in/room/${currentCode}`);
+      alert('Link copied!');
+    }
+
+    function goToRoom() {
+      location.href = `room.html?code=${currentCode}`;
+    }
+
+    function promptJoin() {
+      const code = prompt('Enter Room Code:')?.trim().toUpperCase();
+      if (code && code.length === 6) {
+        sessionStorage.setItem('isHost', 'false'); // Ensure guest
+        location.href = `room.html?code=${code}`;
+      } else if (code) {
+        alert('Invalid code! Must be 6 letters.');
+      }
+    }
+
+    function promptJoinFromOptions() {
+      document.getElementById('room-options-modal').style.display = 'none';
+      promptJoin();
+    }
+
+    function joinPublicRoom(code) {
+      sessionStorage.setItem('isHost', 'false');
+      location.href = `room.html?code=${code}`;
+    }
+
+    window.onclick = e => {
+      if (e.target.classList.contains('modal')) e.target.style.display = 'none';
+    };
+
+    // --- PUBLIC PAGE LOGIC ---
+    let rooms = [];
+
+    socket.on('publicRoomsList', (data) => {
+      rooms = data;
+      renderRooms();
+    });
+
+    function renderRooms(filter = 'trending') {
+      const genre = document.getElementById('genre').value;
+      const lang = document.getElementById('lang').value;
+
+      // For now, ignore genre/lang filters as we don't set them yet
+      // Just show all active public rooms
+      const filtered = rooms;
+
+      document.getElementById('room-container').innerHTML = filtered.map(r => `
+    <div class="room-card">
+      <h4>${r.name} ${r.live ? '<span class="live-badge">LIVE</span>' : ''}</h4>
+      <p>Host: ${r.host}</p>
+      <p>Users: ${r.users}/${r.capacity}
+        <span style="color:#00ff41">${'●'.repeat(r.users)}</span>
+        <span style="color:#444">${'○'.repeat(Math.max(0, r.capacity - r.users))}</span>
+      </p>
+      <button class="card-join-btn" onclick="joinPublicRoom('${r.roomCode}')">Join</button>
+    </div>
+  `).join('') || '<p style="text-align:center;color:#888;grid-column:1/-1">No active public rooms found. Be the first to create one!</p>';
+    }
+
+    function showTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelector(`[onclick="showTab('${tab}')"]`).classList.add('active');
+      renderRooms(tab);
+    }
+
+    document.getElementById('genre').onchange = () => renderRooms();
+    document.getElementById('lang').onchange = () => renderRooms();
+  </script>
+</body>
+
+</html>

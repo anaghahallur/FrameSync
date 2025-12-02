@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Room • FrameSync</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;700;800;900&display=swap');
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+      min-height: 100vh;
+      font-family: 'Inter', sans-serif;
+      color: white;
+      padding: 30px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      gap: 30px;
+      height: calc(100vh - 60px);
+    }
+
+    .video-section {
+      flex: 3;
+      background: rgba(15, 22, 40, 0.95);
+      border-radius: 36px;
+      border: 2.5px solid #00eeff;
+      padding: 30px;
+      box-shadow: 0 0 80px rgba(0, 238, 255, 0.4);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .side-section {
+      flex: 1;
+      background: rgba(15, 22, 40, 0.95);
+      border-radius: 36px;
+      border: 2.5px solid #00eeff;
+      padding: 30px;
+      box-shadow: 0 0 80px rgba(0, 238, 255, 0.4);
+      display: flex;
+      flex-direction: column;
+    }
+
+    #video-player {
+      width: 100%;
+      aspect-ratio: 16/9;
+      background: #000;
+      border-radius: 24px;
+      margin-bottom: 20px;
+    }
+
+    .host-controls {
+      display: none;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    input[type="text"],
+    input[type="file"] {
+      width: 100%;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 2px solid #00eeff;
+      border-radius: 16px;
+      color: white;
+      font-size: 1rem;
+    }
+
+    .btn {
+      padding: 16px 32px;
+      background: linear-gradient(45deg, #00eeff, #00aaff);
+      color: black;
+      border: none;
+      border-radius: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .btn:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 15px 40px rgba(0, 238, 255, 0.5);
+    }
+
+    .leave-btn {
+      margin-top: auto;
+      background: linear-gradient(45deg, #ff3366, #ff6b9d);
+      color: white;
+    }
+
+    .user-list,
+    .chat-box {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 16px;
+      padding: 15px;
+      margin-top: 15px;
+      height: 200px;
+      overflow-y: auto;
+    }
+
+    #chat-input {
+      margin-top: 15px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 2px solid #00eeff;
+      color: white;
+      padding: 16px;
+      border-radius: 16px;
+    }
+
+    .chat-send-btn {
+      margin-top: 10px;
+      width: 100%;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+    <!-- VIDEO SECTION -->
+    <div class="video-section">
+      <div id="player-container"
+        style="width:100%; aspect-ratio:16/9; background:#000; border-radius:24px; margin-bottom:20px; overflow:hidden; position:relative;">
+        <div id="video-player"></div>
+        <video id="html5-player" style="width:100%; height:100%; display:none;" controls></video>
+      </div>
+
+      <!-- HOST CONTROLS (Only visible to host) -->
+      <div id="host-controls" class="host-controls" style="display:flex;flex-direction:column;">
+        <input type="text" id="youtube-link" placeholder="Paste YouTube link here...">
+        <button class="btn" onclick="loadYouTube()">Load YouTube Video</button>
+
+        <div style="display:flex; gap:10px; align-items:center; margin-top:10px;">
+          <button class="btn" onclick="document.getElementById('file-upload').click()" style="flex:1;">Upload
+            Video</button>
+          <button class="btn" onclick="document.getElementById('sub-upload').click()"
+            style="flex:1; background:linear-gradient(45deg, #ff9966, #ff5e62);">Upload Subtitles</button>
+        </div>
+        <div style="margin-top:5px; color:#aaa; font-size:0.9rem;">
+          <span id="file-name">No video chosen</span> | <span id="sub-name">No subtitles</span>
+        </div>
+
+        <input type="file" id="file-upload" accept="video/*" style="display:none"
+          onchange="handleFileSelect(this, 'video')">
+        <input type="file" id="sub-upload" accept=".vtt,.srt" style="display:none"
+          onchange="handleFileSelect(this, 'subtitle')">
+
+        <button class="btn" onclick="uploadFiles()" style="margin-top:10px; width:100%;">Play Uploaded Files</button>
+      </div>
+
+      <button class="btn leave-btn" onclick="leaveRoom()">Leave Room</button>
+    </div>
+
+    <!-- SIDE PANEL -->
+    <div class="side-section">
+      <h2>Users in Room</h2>
+      <div id="user-list" class="user-list"></div>
+
+      <h2 style="margin-top:40px">Chat</h2>
+      <div id="chat-box" class="chat-box"></div>
+      <input type="text" id="chat-input" placeholder="Type a message..."
+        onkeypress="if(event.key==='Enter') sendMessage()">
+      <button class="btn chat-send-btn" onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <!-- SOCKET.IO + YOUTUBE API -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://www.youtube.com/iframe_api"></script>
+
+  <script>
+    const socket = io();
+    const roomCode = new URLSearchParams(window.location.search).get('code');
+    const userName = localStorage.getItem('userName') || 'Guest';
+
+    // Use Session Storage to prevent tab conflicts
+    const isHost = sessionStorage.getItem('isHost') === 'true';
+
+    let ytPlayer;
+    let currentMode = 'youtube'; // 'youtube' or 'file'
+    let isSyncing = false; // Prevent feedback loops
+
+    let selectedVideo = null;
+    let selectedSubtitle = null;
+
+    // Debounce function to prevent event spam
+    function debounce(func, wait) {
+      let timeout;
+      return function (...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+      };
+    }
+
+    // Join Room
+    socket.emit('joinRoom', { roomCode, userName, isHost });
+
+    // Show host controls
+    if (isHost) {
+      document.getElementById('host-controls').style.display = 'flex';
+    }
+
+    // YouTube Player Setup
+    function onYouTubeIframeAPIReady() {
+      ytPlayer = new YT.Player('video-player', {
+        height: '100%',
+        width: '100%',
+        playerVars: { autoplay: 1, controls: 1, rel: 0 },
+        events: {
+          'onReady': () => console.log("YouTube Ready"),
+          'onStateChange': onPlayerStateChange
+        }
+      });
+    }
+
+    function onPlayerStateChange(event) {
+      if (isHost && currentMode === 'youtube' && !isSyncing) {
+        emitVideoState({
+          roomCode,
+          mode: 'youtube',
+          state: event.data,
+          time: ytPlayer.getCurrentTime()
+        });
+      }
+    }
+
+    // HTML5 Player Setup
+    const html5Player = document.getElementById('html5-player');
+    html5Player.crossOrigin = "anonymous";
+
+    // Debounced Emit
+    const emitVideoState = debounce((data) => {
+      socket.emit('videoState', data);
+    }, 100);
+
+    html5Player.addEventListener('play', () => {
+      if (isHost && currentMode === 'file' && !isSyncing) {
+        emitVideoState({ roomCode, mode: 'file', state: 'play', time: html5Player.currentTime });
+      }
+    });
+
+    html5Player.addEventListener('pause', () => {
+      if (isHost && currentMode === 'file' && !isSyncing) {
+        emitVideoState({ roomCode, mode: 'file', state: 'pause', time: html5Player.currentTime });
+      }
+    });
+
+    html5Player.addEventListener('seeked', () => {
+      if (isHost && currentMode === 'file' && !isSyncing) {
+        emitVideoState({ roomCode, mode: 'file', state: 'seek', time: html5Player.currentTime });
+      }
+    });
+
+    // Load YouTube (Host Only)
+    function loadYouTube() {
+      if (!isHost) return showToast("Only host can control video", "error");
+      const url = document.getElementById('youtube-link').value.trim();
+      const videoId = url.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})/)?.[1];
+      if (!videoId) return showToast("Invalid YouTube link", "error");
+
+      // Switch to YouTube mode locally
+      switchMode('youtube');
+      ytPlayer.loadVideoById(videoId);
+
+      socket.emit('loadVideo', { roomCode, videoId });
+    }
+
+    // File Selection
+    function handleFileSelect(input, type) {
+      const file = input.files[0];
+      if (!file) return;
+
+      if (type === 'video') {
+        selectedVideo = file;
+        document.getElementById('file-name').textContent = file.name;
+      } else {
+        selectedSubtitle = file;
+        document.getElementById('sub-name').textContent = file.name;
+      }
+    }
+
+    // Upload Files (Host Only)
+    async function uploadFiles() {
+      if (!isHost) return;
+      if (!selectedVideo) return showToast("Please select a video file", "error");
+
+      const formData = new FormData();
+      formData.append('video', selectedVideo);
+      if (selectedSubtitle) {
+        formData.append('subtitle', selectedSubtitle);
+      }
+
+      showToast("Uploading...", "info");
+
+      try {
+        const res = await fetch('/api/upload', { method: 'POST', body: formData });
+        const data = await res.json();
+
+        if (data.url) {
+          // Switch to File mode locally
+          switchMode('file');
+          playFile(data.url, data.subtitleUrl);
+
+          socket.emit('loadFile', {
+            roomCode,
+            url: data.url,
+            subtitleUrl: data.subtitleUrl,
+            filename: data.filename
+          });
+          showToast("Upload complete!", "success");
+        }
+      } catch (err) {
+        console.error(err);
+        showToast("Upload failed", "error");
+      }
+    }
+
+    function playFile(url, subtitleUrl) {
+      html5Player.src = url;
+      html5Player.innerHTML = ''; // Clear old tracks
+
+      if (subtitleUrl) {
+        const track = document.createElement('track');
+        track.kind = 'subtitles';
+        track.label = 'English';
+        track.srclang = 'en';
+        track.src = subtitleUrl;
+        track.default = true;
+        html5Player.appendChild(track);
+
+        // Force display using textTracks API
+        html5Player.addEventListener('loadedmetadata', () => {
+          if (html5Player.textTracks[0]) {
+            html5Player.textTracks[0].mode = 'showing';
+          }
+        }, { once: true });
+      }
+
+      html5Player.play();
+    }
+
+    function switchMode(mode) {
+      currentMode = mode;
+      if (mode === 'youtube') {
+        document.getElementById('video-player').style.display = 'block';
+        document.getElementById('html5-player').style.display = 'none';
+        html5Player.pause();
+      } else {
+        document.getElementById('video-player').style.display = 'none';
+        document.getElementById('html5-player').style.display = 'block';
+        if (ytPlayer && ytPlayer.pauseVideo) ytPlayer.pauseVideo();
+      }
+    }
+
+    // Socket Events
+    socket.on('loadVideo', (data) => {
+      switchMode('youtube');
+      if (ytPlayer && ytPlayer.loadVideoById) {
+        ytPlayer.loadVideoById(data.videoId);
+      }
+    });
+
+    socket.on('loadFile', (data) => {
+      switchMode('file');
+      playFile(data.url, data.subtitleUrl);
+      showToast("Host loaded a file: " + data.filename);
+    });
+
+    // Sync video state
+    socket.on('videoState', (data) => {
+      if (isHost) return; // Host ignores incoming sync signals to avoid loops
+
+      isSyncing = true; // Block outgoing events while syncing
+
+      if (data.mode === 'youtube' && currentMode === 'youtube') {
+        if (Math.abs(ytPlayer.getCurrentTime() - data.time) > 2) {
+          ytPlayer.seekTo(data.time, true);
+        }
+        if (data.state === 1) ytPlayer.playVideo();
+        if (data.state === 2) ytPlayer.pauseVideo();
+      }
+      else if (data.mode === 'file' && currentMode === 'file') {
+        // Only sync if difference is significant to prevent micro-stutters
+        if (Math.abs(html5Player.currentTime - data.time) > 0.5) {
+          html5Player.currentTime = data.time;
+        }
+        if (data.state === 'play') html5Player.play().catch(e => console.log("Autoplay blocked"));
+        if (data.state === 'pause') html5Player.pause();
+      }
+
+      setTimeout(() => isSyncing = false, 500); // Reset sync flag
+    });
+
+    // User List
+    socket.on('updateUsers', (users) => {
+      document.getElementById('user-list').innerHTML = users.map(u => {
+        const hostBadge = u.isHost ? ' <span style="color:#ffd700; font-size:0.9em;">👑</span>' : '';
+        return `<p>• ${u.name}${hostBadge}</p>`;
+      }).join('');
+    });
+
+    // Chat
+    socket.on('chatMessage', (msg) => {
+      const chat = document.getElementById('chat-box');
+      chat.innerHTML += `<p><strong>${msg.name}:</strong> ${msg.text}</p>`;
+      chat.scrollTop = chat.scrollHeight;
+    });
+
+    // Room Ended
+    socket.on('roomEnded', () => {
+      alert("The host has left the room. The session has ended.");
+      sessionStorage.removeItem('isHost');
+      location.href = 'dashboard.html';
+    });
+
+    function sendMessage() {
+      const input = document.getElementById('chat-input');
+      const text = input.value.trim();
+      if (text) {
+        socket.emit('chatMessage', { roomCode, text });
+        input.value = '';
+      }
+    }
+
+    function leaveRoom() {
+      socket.emit('leaveRoom', roomCode);
+      sessionStorage.removeItem('isHost');
+      location.href = 'dashboard.html';
+    }
+
+    // Toast Function
+    function showToast(message, type = "info") {
+      const toast = document.createElement('div');
+      toast.textContent = message;
+      toast.style.cssText = `
+      position:fixed; bottom:30px; right:30px; z-index:9999;
+      background:${type === 'error' ? '#ff3366' : type === 'success' ? '#00ff88' : '#00eeff'};
+      color:black; padding:16px 32px; border-radius:16px;
+      font-weight:700; box-shadow:0 0 40px rgba(0,0,0,0.5);
+      animation:slideIn 0.4s, slideOut 0.4s 2.6s forwards;
+    `;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    // CSS Animations
+    const style = document.createElement('style');
+    style.textContent = `
+    @keyframes slideIn { from { transform:translateX(100%); opacity:0; } to { transform:translateX(0); opacity:1; } }
+    @keyframes slideOut { to { transform:translateX(100%); opacity:0; } }
+  `;
+    document.head.appendChild(style);
+  </script>
+
+</body>
+
+</html>
+
+

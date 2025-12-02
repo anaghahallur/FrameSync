@@ -1,0 +1,63 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FrameSync – Sign Up</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>FrameSync</h1>
+    <p>Create your private cinema account</p>
+
+    <div class="form-group">
+      <input type="text" id="name" placeholder="Full Name" required />
+      <input type="email" id="email" placeholder="Email" required />
+      <input type="password" id="password" placeholder="Password (6+ chars)" required />
+      <button onclick="signup()">Create Account</button>
+    </div>
+
+    <p>Already have an account? <a href="index.html">Log In</a></p>
+    <p id="status" style="color:red; margin-top:10px"></p>
+  </div>
+
+  <script>
+    async function signup() {
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const status = document.getElementById('status');
+
+      if (!name || !email || !password) {
+        status.innerText = "All fields are required";
+        return;
+      }
+      if (password.length < 6) {
+        status.innerText = "Password must be 6+ characters";
+        return;
+      }
+
+      status.innerText = "Creating account...";
+
+      try {
+        const res = await fetch('http://localhost:3000/api/auth/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password })
+        });
+
+        const data = await res.json();
+        if (data.token) {
+          localStorage.setItem('token', data.token);
+          location.href = 'dashboard.html';
+        } else {
+          status.innerText = data.error || 'Sign up failed';
+        }
+      } catch (err) {
+        status.innerText = "Server not running yet";
+      }
+    }
+  </script>
+</body>
+</html> -->
