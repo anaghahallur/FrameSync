@@ -25,3 +25,13 @@ CREATE TABLE IF NOT EXISTS connections (
   synced_at TIMESTAMP DEFAULT NOW(),
   UNIQUE(user_id, friend_id, movie_title)
 );
+
+-- FRIENDS TABLE
+CREATE TABLE IF NOT EXISTS friends (
+  id SERIAL PRIMARY KEY,
+  user_id INT REFERENCES users(id),
+  friend_id INT REFERENCES users(id),
+  status TEXT DEFAULT 'pending', -- 'pending', 'accepted'
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(user_id, friend_id)
+);

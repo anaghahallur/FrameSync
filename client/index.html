@@ -42,7 +42,7 @@
     }
 
     body {
-      background: radial-gradient(circle at top, rgba(229, 9, 20, 0.08), transparent 45%) , var(--bg-main);
+      background: radial-gradient(circle at top, rgba(229, 9, 20, 0.08), transparent 45%), var(--bg-main);
       min-height: 100vh;
       font-family: 'Inter', sans-serif;
       display: flex;
@@ -103,7 +103,7 @@
       z-index: 0;
     }
 
-    .card > * {
+    .card>* {
       position: relative;
       z-index: 1;
     }
@@ -225,7 +225,6 @@
       color: var(--text-muted);
       font-size: 0.95rem;
     }
-
   </style>
 </head>
 
@@ -253,13 +252,30 @@
   </div>
 
   <script>
-    function handleCredentialResponse(response) {
-      const data = JSON.parse(atob(response.credential.split('.')[1]));
-      localStorage.setItem("userName", data.name);
-      localStorage.setItem("userEmail", data.email);
-      localStorage.setItem("userAvatar", data.picture);
-      localStorage.setItem("isLoggedIn", "true");
-      location.href = "dashboard.html";
+    async function handleCredentialResponse(response) {
+      try {
+        const res = await fetch('/api/auth/google', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ credential: response.credential })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Login failed");
+
+        // Store Session Data
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("userId", data.user.id); // Store ID for easy access
+        localStorage.setItem("userName", data.user.name);
+        localStorage.setItem("userEmail", data.user.email);
+        localStorage.setItem("userAvatar", data.user.avatar);
+        localStorage.setItem("isLoggedIn", "true");
+
+        location.href = "dashboard.html";
+      } catch (err) {
+        console.error(err);
+        alert("Login failed: " + err.message);
+      }
     }
 
     function triggerGoogleFlow(type) {

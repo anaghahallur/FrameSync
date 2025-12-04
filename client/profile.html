@@ -292,6 +292,15 @@
                 </div>
             </div>
 
+            <!-- FRIENDS LIST SECTION -->
+            <div style="margin-bottom:40px;">
+                <h3 style="margin-bottom:20px; font-size:1.5rem; color:var(--text-main);">Your Friends</h3>
+                <div id="profile-friends-grid"
+                    style="display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:15px;">
+                    <p style="color:#666;">Loading friends...</p>
+                </div>
+            </div>
+
             <div class="action-buttons">
                 <button onclick="copyEmail()" class="action-btn">Copy Email</button>
                 <button onclick="shareProfile()" class="action-btn">Share Profile</button>
@@ -319,8 +328,52 @@
         // Load stats (you can save these later)
         document.getElementById("rooms-created").textContent = localStorage.getItem("roomsCreated") || "0";
         document.getElementById("watch-hours").textContent = localStorage.getItem("watchHours") || "0";
-        document.getElementById("friends-added").textContent = localStorage.getItem("friendsAdded") || "0";
         document.getElementById("videos-synced").textContent = localStorage.getItem("videosSynced") || "0";
+
+        // Fetch Friends
+        async function fetchProfileFriends() {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+
+            try {
+                const res = await fetch('/api/friends', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!res.ok) throw new Error("Failed to fetch");
+
+                const friends = await res.json();
+
+                if (!Array.isArray(friends)) {
+                    console.error("Expected array but got:", friends);
+                    document.getElementById('profile-friends-grid').innerHTML = '<p style="color:red;">Error loading friends.</p>';
+                    return;
+                }
+
+                document.getElementById("friends-added").textContent = friends.length;
+                localStorage.setItem("friendsAdded", friends.length);
+
+                const grid = document.getElementById('profile-friends-grid');
+                if (friends.length === 0) {
+                    grid.innerHTML = '<p style="color:#666; grid-column:1/-1;">No friends yet.</p>';
+                    return;
+                }
+
+                grid.innerHTML = friends.map(f => `
+                    <div style="background:var(--bg-panel); padding:15px; border-radius:12px; display:flex; align-items:center; gap:10px; border:1px solid var(--border);">
+                        <div style="width:32px; height:32px; background:linear-gradient(45deg, #E50914, #ff5e62); border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:1rem; color:white;">
+                            ${f.name.charAt(0).toUpperCase()}
+                        </div>
+                        <span style="font-weight:600; font-size:0.95rem;">${f.name}</span>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error("Failed to fetch friends:", err);
+                document.getElementById('profile-friends-grid').innerHTML = '<p style="color:red;">Failed to load friends.</p>';
+            }
+        }
+
+        fetchProfileFriends();
 
         function copyEmail() {
             navigator.clipboard.writeText(email);

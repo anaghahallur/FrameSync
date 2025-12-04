@@ -116,8 +116,10 @@
       </div>
 
       <div class="card">
-        <h3>Trending in Circle</h3>
-        <p>No trending rooms.</p>
+        <h3>Your Circle</h3>
+        <div id="friends-grid" style="display:flex; flex-direction:column; gap:10px; margin-top:10px;">
+          <p style="color:#666;">Loading friends...</p>
+        </div>
       </div>
 
       <div class="card">
@@ -220,7 +222,66 @@
   <!-- JAVASCRIPT -->
   <script src="/socket.io/socket.io.js"></script>
   <script>
-    if (localStorage.getItem('isLoggedIn') !== 'true') location.href = 'index.html';
+    // Check Auth
+    if (localStorage.getItem('isLoggedIn') !== 'true') {
+      location.href = 'index.html';
+    }
+
+    const userName = localStorage.getItem('userName') || 'User';
+    // document.getElementById('user-name').innerText = userName; // This element does not exist in the provided HTML
+
+    // Fetch Friends
+    async function fetchFriends() {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      try {
+        console.log("Fetching friends...");
+        const res = await fetch('/api/friends', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!res.ok) throw new Error("Failed to fetch");
+
+        const friends = await res.json();
+        console.log("Friends fetched:", friends);
+
+        const grid = document.getElementById('friends-grid');
+        if (grid) {
+          if (!Array.isArray(friends)) {
+            console.error("Expected array but got:", friends);
+            grid.innerHTML = '<p style="color:red; grid-column:1/-1;">Error loading friends.</p>';
+            return;
+          }
+
+          if (friends.length === 0) {
+            grid.innerHTML = '<p style="color:#666; grid-column:1/-1;">No friends yet. Join a room to make connections!</p>';
+            return;
+          }
+
+          grid.innerHTML = friends.map(f => `
+  <div class="card" style="padding:20px; display:flex; align-items:center; gap:15px;">
+    <div
+      style="width:40px; height:40px; background:linear-gradient(45deg, #E50914, #ff5e62); border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:1.2rem;">
+      ${f.name.charAt(0).toUpperCase()}
+    </div>
+    <div>
+      <h3 style="font-size:1rem; margin-bottom:2px;">${f.name}</h3>
+      <p style="font-size:0.8rem; color:#888;">Friend</p>
+    </div>
+  </div>
+  `).join('');
+        } else {
+          console.error("friends-grid element not found!");
+        }
+      } catch (err) {
+        console.error("Failed to fetch friends:", err);
+        const grid = document.getElementById('friends-grid');
+        if (grid) grid.innerHTML = '<p style="color:red; grid-column:1/-1;">Failed to load friends.</p>';
+      }
+    }
+
+    fetchFriends();
 
     // Initialize Socket for Create Room events
     const socket = io();
@@ -288,19 +349,35 @@
         const roomName = document.getElementById('room-name-input').value.trim();
         if (!roomName) return alert("Please enter a room name for public rooms.");
 
+        const token = localStorage.getItem('token');
+        const email = localStorage.getItem('userEmail');
+
         // Emit to server to register public room
         socket.emit('createRoom', {
           roomCode: currentCode,
           type: 'public',
           name: roomName,
           capacity: capacity,
-          userName: userName
+          userName: userName,
+          token,
+          email
         });
 
         // Redirect directly for public rooms
         location.href = `room.html?code=${currentCode}`;
 
       } else {
+        // Emit to server to register private room (for DB persistence)
+        socket.emit('createRoom', {
+          roomCode: currentCode,
+          type: 'private',
+          name: 'Private Room',
+          capacity: capacity,
+          userName: userName,
+          token: localStorage.getItem('token'),
+          email: localStorage.getItem('userEmail')
+        });
+
         // Private Room - Show Success Modal
         document.getElementById('room-code').innerText = currentCode;
         document.getElementById('room-link').innerText = `framesync.in/room/${currentCode}`;

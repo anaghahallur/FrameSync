@@ -39,6 +39,8 @@
       box-shadow: 0 0 80px rgba(0, 238, 255, 0.4);
       display: flex;
       flex-direction: column;
+      overflow-y: auto;
+      /* Allow scrolling if video grid grows */
     }
 
     .side-section {
@@ -133,11 +135,17 @@
       <div id="player-container"
         style="width:100%; aspect-ratio:16/9; background:#000; border-radius:24px; margin-bottom:20px; overflow:hidden; position:relative;">
         <div id="video-player"></div>
-        <video id="html5-player" style="width:100%; height:100%; display:none;" controls></video>
+        <!-- Remove 'controls' attribute by default -->
+        <video id="html5-player" style="width:100%; height:100%; display:none;"></video>
+
+        <!-- GUEST OVERLAY (Blocks interaction) -->
+        <div id="guest-overlay"
+          style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; z-index:10; cursor:default;">
+        </div>
       </div>
 
       <!-- HOST CONTROLS (Only visible to host) -->
-      <div id="host-controls" class="host-controls" style="display:flex;flex-direction:column;">
+      <div id="host-controls" class="host-controls" style="display:none; flex-direction:column;">
         <input type="text" id="youtube-link" placeholder="Paste YouTube link here...">
         <button class="btn" onclick="loadYouTube()">Load YouTube Video</button>
 
@@ -160,10 +168,42 @@
       </div>
 
       <button class="btn leave-btn" onclick="leaveRoom()">Leave Room</button>
+
+      <!-- VIDEO CHAT BAR (Horizontal Strip) -->
+      <div id="video-chat-container"
+        style="margin-top:20px; background:rgba(0,0,0,0.3); padding:15px; border-radius:24px; border:1px solid rgba(255,255,255,0.1);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <h3 style="margin:0; color:var(--text-main);">Video Chat <span id="peer-count"
+              style="font-size:0.8rem; color:#888; margin-left:10px;">(Peers: 0)</span></h3>
+          <div style="display:flex; gap:10px;">
+            <div id="call-controls" style="display:none; gap:10px;">
+              <button onclick="toggleMute()" id="mute-btn"
+                style="background:rgba(255,255,255,0.1); border:none; border-radius:50%; width:36px; height:36px; cursor:pointer; display:flex; align-items:center; justify-content:center;">🎤</button>
+              <button onclick="toggleVideo()" id="video-btn"
+                style="background:rgba(255,255,255,0.1); border:none; border-radius:50%; width:36px; height:36px; cursor:pointer; display:flex; align-items:center; justify-content:center;">📷</button>
+            </div>
+            <button id="join-call-btn" onclick="toggleCall()"
+              style="padding:8px 16px; background:var(--accent, #E50914); color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold;">Join
+              Call</button>
+          </div>
+        </div>
+
+        <div id="video-grid"
+          style="display:flex; flex-wrap:wrap; justify-content:center; gap:15px; padding-bottom:5px; display:none; min-height:120px;">
+          <!-- Local Video -->
+          <div style="position:relative; width:200px; height:150px;">
+            <video id="local-video" autoplay muted playsinline
+              style="width:100%; height:100%; object-fit:cover; border-radius:12px; background:#000; transform:scaleX(-1); border:2px solid var(--accent);"></video>
+            <span
+              style="position:absolute; bottom:5px; left:5px; font-size:0.7rem; background:rgba(0,0,0,0.6); padding:2px 6px; border-radius:4px; font-weight:bold;">You</span>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- SIDE PANEL -->
     <div class="side-section">
+
       <h2>Users in Room</h2>
       <div id="user-list" class="user-list"></div>
 
@@ -203,12 +243,103 @@
       };
     }
 
-    // Join Room
-    socket.emit('joinRoom', { roomCode, userName, isHost });
+    // Auth Check
+    if (localStorage.getItem('isLoggedIn') !== 'true') {
+      alert("You must be logged in to join a room.");
+      location.href = 'index.html';
+    }
 
-    // Show host controls
+    // Join Room
+    const token = localStorage.getItem('token');
+    const email = localStorage.getItem('userEmail');
+    // We need to fetch our own userId to know who we are for friend requests
+    // For now, we'll rely on the server broadcasting events with IDs.
+    // Ideally, we should fetch /api/me to get our ID, but we'll use the token/email in joinRoom.
+
+    socket.emit('joinRoom', { roomCode, userName, isHost, token, email });
+
+    // User List with Friend Options
+    let myUserId = null;
+
+    socket.on('updateUsers', (users) => {
+      // Try to find myself to get my ID (if server sends it back in list)
+      // Note: Server sends { name, isHost, userId }
+      const me = users.find(u => u.name === userName);
+      if (me) myUserId = me.userId;
+
+      document.getElementById('user-list').innerHTML = users.map(u => {
+        const hostBadge = u.isHost ? ' <span style="color:#ffd700; font-size:0.9em;">👑</span>' : '';
+        let friendBtn = '';
+
+        // Show Add Friend button if:
+        // 1. It's not me
+        // 2. Both have IDs
+        // 3. We are in a Public Room (Private auto-adds, but showing button doesn't hurt if check fails)
+        if (u.userId && myUserId && u.userId !== myUserId) {
+          friendBtn = `<button onclick="addFriend(${u.userId})" style="margin-left:10px; padding:2px 8px; font-size:0.8rem; background:var(--accent, #00eeff); border:none; border-radius:4px; color:black; cursor:pointer; font-weight:bold;">+</button>`;
+        }
+
+        return `<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
+                  <span>• ${u.name}${hostBadge}</span>
+                  ${friendBtn}
+                </div>`;
+      }).join('');
+    });
+
+    window.addFriend = function (targetId) {
+      if (!myUserId) return showToast("Error: User ID not found", "error");
+      socket.emit('addFriend', { fromUserId: myUserId, toUserId: targetId });
+      showToast("Friend request sent!", "success");
+    };
+
+    // Friend Events
+    socket.on('friendRequestReceived', (data) => {
+      // Check if it's for me (client-side filter if broadcasted to room)
+      // Ideally server sends to specific socket, but we broadcasted to room in server.js
+      // We need to know our own ID.
+      if (myUserId && data.toUserId === myUserId) {
+        const toast = document.createElement('div');
+        toast.innerHTML = `
+          <p><strong>${data.fromName}</strong> sent a friend request!</p>
+          <button onclick="acceptFriend(${data.fromUserId}, this.parentElement)" style="margin-top:5px; background:white; color:black; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">Accept</button>
+        `;
+        toast.style.cssText = `
+          position:fixed; bottom:80px; right:30px; z-index:9999;
+          background:#00eeff; color:black; padding:16px; border-radius:16px;
+          font-weight:700; box-shadow:0 0 40px rgba(0,0,0,0.5);
+          animation:slideIn 0.4s;
+        `;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 10000);
+      }
+    });
+
+    window.acceptFriend = function (fromId, toastElem) {
+      socket.emit('acceptFriend', { userId: myUserId, friendId: fromId });
+      toastElem.remove();
+      showToast("Friend request accepted!", "success");
+    };
+
+    socket.on('friendRequestAccepted', (data) => {
+      if (data.userId === myUserId || data.friendId === myUserId) {
+        showToast("You are now friends!", "success");
+      }
+    });
+
+    // Show host controls AND enable video controls for host
     if (isHost) {
       document.getElementById('host-controls').style.display = 'flex';
+      document.getElementById('html5-player').controls = true;
+    } else {
+      // Enable Overlay for Guests
+      document.getElementById('guest-overlay').style.display = 'block';
+
+      // Allow unmuting on click (browser policy)
+      document.getElementById('guest-overlay').addEventListener('click', () => {
+        if (ytPlayer && ytPlayer.unMute) ytPlayer.unMute();
+        const html5 = document.getElementById('html5-player');
+        if (html5) html5.muted = false;
+      });
     }
 
     // YouTube Player Setup
@@ -216,7 +347,12 @@
       ytPlayer = new YT.Player('video-player', {
         height: '100%',
         width: '100%',
-        playerVars: { autoplay: 1, controls: 1, rel: 0 },
+        playerVars: {
+          autoplay: 1,
+          controls: isHost ? 1 : 0, // Hide controls for guest
+          disablekb: isHost ? 0 : 1, // Disable keyboard for guest
+          rel: 0
+        },
         events: {
           'onReady': () => console.log("YouTube Ready"),
           'onStateChange': onPlayerStateChange
@@ -402,13 +538,7 @@
       setTimeout(() => isSyncing = false, 500); // Reset sync flag
     });
 
-    // User List
-    socket.on('updateUsers', (users) => {
-      document.getElementById('user-list').innerHTML = users.map(u => {
-        const hostBadge = u.isHost ? ' <span style="color:#ffd700; font-size:0.9em;">👑</span>' : '';
-        return `<p>• ${u.name}${hostBadge}</p>`;
-      }).join('');
-    });
+    // User List (Handled above with Friend Logic)
 
     // Chat
     socket.on('chatMessage', (msg) => {
@@ -461,10 +591,205 @@
     @keyframes slideOut { to { transform:translateX(100%); opacity:0; } }
   `;
     document.head.appendChild(style);
+    // --- WEBRTC VIDEO CHAT LOGIC ---
+    let localStream;
+    let peers = {}; // socketId -> RTCPeerConnection
+    let isCallActive = false;
+
+    const rtcConfig = {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' }
+      ]
+    };
+
+    function updatePeerCount() {
+      const count = Object.keys(peers).length;
+      console.log("Updating Peer Count:", count, peers);
+      document.getElementById('peer-count').textContent = `(Peers: ${count})`;
+    }
+
+    async function toggleCall() {
+      const btn = document.getElementById('join-call-btn');
+      const grid = document.getElementById('video-grid');
+      const controls = document.getElementById('call-controls');
+
+      if (!isCallActive) {
+        // JOIN CALL
+        try {
+          localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+          document.getElementById('local-video').srcObject = localStream;
+
+          grid.style.display = 'flex';
+          controls.style.display = 'flex';
+          btn.textContent = "Leave Call";
+          btn.style.background = "#666";
+          isCallActive = true;
+
+          // Signal readiness
+          console.log("Emitting join-video for room:", roomCode);
+          socket.emit('join-video', roomCode);
+          updatePeerCount(); // Update count for local user joining
+
+        } catch (err) {
+          console.error("Failed to get local stream", err);
+          alert("Could not access camera/microphone.");
+        }
+      } else {
+        // LEAVE CALL
+        leaveCall();
+        btn.textContent = "Join Call";
+        btn.style.background = "var(--accent, #E50914)";
+        grid.style.display = 'none';
+        controls.style.display = 'none';
+        isCallActive = false;
+        updatePeerCount(); // Update count for local user leaving
+      }
+    }
+
+    function leaveCall() {
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        localStream = null;
+      }
+      // Close all peer connections
+      Object.values(peers).forEach(p => p.close());
+      peers = {};
+
+      // Remove remote videos
+      const grid = document.getElementById('video-grid');
+      while (grid.children.length > 1) { // Keep local video container
+        grid.removeChild(grid.lastChild);
+      }
+
+      socket.emit('leave-video', roomCode);
+    }
+
+    function toggleMute() {
+      if (localStream) {
+        const audioTrack = localStream.getAudioTracks()[0];
+        audioTrack.enabled = !audioTrack.enabled;
+        document.getElementById('mute-btn').textContent = audioTrack.enabled ? '🎤' : '❌';
+      }
+    }
+
+    function toggleVideo() {
+      if (localStream) {
+        const videoTrack = localStream.getVideoTracks()[0];
+        videoTrack.enabled = !videoTrack.enabled;
+        document.getElementById('video-btn').textContent = videoTrack.enabled ? '📷' : '🚫';
+      }
+    }
+
+    // --- SIGNALING EVENTS ---
+
+    // 1. New User Joined Video -> Create Offer
+    socket.on('user-connected-video', async (socketId) => {
+      if (!isCallActive) return;
+      console.log("New user joined video:", socketId);
+      const peer = createPeer(socketId, socket.id);
+      peers[socketId] = peer;
+      updatePeerCount();
+
+      // Add local stream
+      localStream.getTracks().forEach(track => peer.addTrack(track, localStream));
+
+      // Create Offer
+      const offer = await peer.createOffer();
+      await peer.setLocalDescription(offer);
+      socket.emit('offer', { target: socketId, caller: socket.id, sdp: peer.localDescription });
+    });
+
+    // 2. Receive Offer -> Create Answer
+    socket.on('offer', async (payload) => {
+      if (!isCallActive) return;
+      console.log("Received offer from:", payload.caller);
+      const peer = createPeer(payload.caller, socket.id);
+      peers[payload.caller] = peer;
+      updatePeerCount();
+
+      // Add local stream
+      localStream.getTracks().forEach(track => peer.addTrack(track, localStream));
+
+      await peer.setRemoteDescription(payload.sdp);
+      const answer = await peer.createAnswer();
+      await peer.setLocalDescription(answer);
+
+      socket.emit('answer', { target: payload.caller, caller: socket.id, sdp: peer.localDescription });
+    });
+
+    // 3. Receive Answer
+    socket.on('answer', async (payload) => {
+      console.log("Received answer from:", payload.caller);
+      const peer = peers[payload.caller];
+      if (peer) {
+        await peer.setRemoteDescription(payload.sdp);
+      }
+    });
+
+    // 4. Receive ICE Candidate
+    socket.on('ice-candidate', async (incoming) => {
+      const peer = peers[incoming.caller];
+      if (peer) {
+        await peer.addIceCandidate(incoming.candidate);
+      }
+    });
+
+    // 5. User Left Video
+    socket.on('user-disconnected-video', (socketId) => {
+      if (peers[socketId]) {
+        peers[socketId].close();
+        delete peers[socketId];
+        updatePeerCount();
+      }
+      const videoElem = document.getElementById(`video-${socketId}`);
+      if (videoElem) videoElem.parentElement.remove(); // Remove container
+    });
+
+    function createPeer(targetSocketId, mySocketId) {
+      const peer = new RTCPeerConnection(rtcConfig);
+
+      peer.oniceconnectionstatechange = () => {
+        console.log(`ICE State for ${targetSocketId}:`, peer.iceConnectionState);
+        if (peer.iceConnectionState === 'disconnected' || peer.iceConnectionState === 'failed') {
+          const videoElem = document.getElementById(`video-${targetSocketId}`);
+          if (videoElem) videoElem.parentElement.remove();
+          if (peers[targetSocketId]) {
+            peers[targetSocketId].close();
+            delete peers[targetSocketId];
+            updatePeerCount();
+          }
+        }
+      };
+
+      peer.onicecandidate = (e) => {
+        if (e.candidate) {
+          socket.emit('ice-candidate', { target: targetSocketId, caller: mySocketId, candidate: e.candidate });
+        }
+      };
+
+      peer.ontrack = (e) => {
+        console.log("Received remote stream");
+        const grid = document.getElementById('video-grid');
+
+        let vidContainer = document.getElementById(`video-${targetSocketId}`);
+        if (!vidContainer) {
+          vidContainer = document.createElement('div');
+          vidContainer.style.cssText = 'position:relative; width:200px; height:150px;';
+          vidContainer.innerHTML = `
+             <video id="video-${targetSocketId}" autoplay playsinline style="width:100%; height:100%; object-fit:cover; border-radius:12px; background:#222;"></video>
+           `;
+          grid.appendChild(vidContainer);
+        }
+
+        const vid = vidContainer.querySelector('video');
+        vid.srcObject = e.streams[0];
+      };
+
+      return peer;
+    }
   </script>
 
 </body>
 
 </html>
-
-
