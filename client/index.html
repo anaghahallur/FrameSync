@@ -265,10 +265,10 @@
 
         // Store Session Data
         localStorage.setItem("token", data.token);
-        localStorage.setItem("userId", data.user.id); // Store ID for easy access
-        localStorage.setItem("userName", data.user.name);
-        localStorage.setItem("userEmail", data.user.email);
-        localStorage.setItem("userAvatar", data.user.avatar);
+        localStorage.setItem("userId", data.id); // Store ID if available, or fetch later
+        localStorage.setItem("userName", data.name);
+        localStorage.setItem("userEmail", data.email);
+        localStorage.setItem("userAvatar", data.avatar);
         localStorage.setItem("isLoggedIn", "true");
 
         location.href = "dashboard.html";

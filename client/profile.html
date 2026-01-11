@@ -266,10 +266,50 @@
 
         <div class="contact-card">
             <div class="user-info-box">
-                <img id="user-avatar" src="" alt="You" class="avatar">
+                <div style="position:relative;">
+                    <img id="user-avatar" src="" alt="You" class="avatar">
+                    <button onclick="openAvatarModal()"
+                        style="position:absolute; bottom:0; right:0; background:var(--accent); border:none; border-radius:50%; width:32px; height:32px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:white; font-size:1.2rem; box-shadow:0 2px 10px rgba(0,0,0,0.5);">✎</button>
+                </div>
                 <div>
                     <h3 id="user-name">Loading...</h3>
                     <p id="user-email">email@gmail.com</p>
+                </div>
+            </div>
+
+            <!-- AVATAR MODAL -->
+            <div id="avatar-modal"
+                style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:2000; align-items:center; justify-content:center;">
+                <div
+                    style="background:var(--bg-card); padding:30px; border-radius:20px; border:1px solid var(--border); width:90%; max-width:450px; text-align:center;">
+                    <h2 style="margin-bottom:20px; color:white;">Choose Avatar</h2>
+
+                    <div
+                        style="background:#222; padding:20px; border-radius:50%; width:160px; height:160px; margin:0 auto 20px auto; display:flex; align-items:center; justify-content:center; border:3px solid var(--accent);">
+                        <img id="avatar-preview" src=""
+                            style="width:140px; height:140px; border-radius:50%; object-fit:cover;">
+                    </div>
+
+                    <div style="display:flex; gap:10px; justify-content:center; margin-bottom:20px; flex-wrap:wrap;">
+                        <button onclick="setAvatarStyle('avataaars')" class="style-btn">Avatars</button>
+                        <button onclick="setAvatarStyle('bottts')" class="style-btn">Bots</button>
+                        <button onclick="setAvatarStyle('fun-emoji')" class="style-btn">Emoji</button>
+                        <button onclick="setAvatarStyle('identicon')" class="style-btn">Pattern</button>
+                        <button onclick="setAvatarStyle('lorelei')" class="style-btn">Art</button>
+                        <button onclick="setAvatarStyle('notionists')" class="style-btn">Notion</button>
+                    </div>
+
+                    <button onclick="randomizeAvatar()"
+                        style="background:var(--bg-panel); color:white; border:1px solid var(--border); padding:10px 20px; border-radius:8px; cursor:pointer; margin-bottom:20px;">🎲
+                        Randomize</button>
+
+                    <div style="display:flex; gap:10px; justify-content:center;">
+                        <button onclick="saveAvatar()"
+                            style="background:var(--accent); color:white; border:none; padding:12px 24px; border-radius:8px; cursor:pointer; font-weight:bold;">Save
+                            New Avatar</button>
+                        <button onclick="closeAvatarModal()"
+                            style="background:transparent; color:#aaa; border:1px solid #444; padding:12px 24px; border-radius:8px; cursor:pointer;">Cancel</button>
+                    </div>
                 </div>
             </div>
 
@@ -309,6 +349,24 @@
         </div>
     </div>
 
+    <style>
+        .style-btn {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            color: #aaa;
+            padding: 5px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .style-btn:hover,
+        .style-btn.active {
+            border-color: var(--accent);
+            color: white;
+        }
+    </style>
+
     <script>
         // Redirect if not logged in
         if (localStorage.getItem("isLoggedIn") !== "true") {
@@ -318,12 +376,71 @@
         // Load user data
         const name = localStorage.getItem("userName") || "User";
         const email = localStorage.getItem("userEmail") || "your@email.com";
-        const avatar = localStorage.getItem("userAvatar") ||
-            `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=00d4ff&color=fff&bold=true&size=256`;
+        let currentAvatar = localStorage.getItem("userAvatar") ||
+            `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`;
 
         document.getElementById("user-name").textContent = name;
         document.getElementById("user-email").textContent = email;
-        document.getElementById("user-avatar").src = avatar;
+        document.getElementById("user-avatar").src = currentAvatar;
+
+        // Avatar Logic
+        let selectedStyle = 'avataaars';
+        let randomSeed = name;
+
+        function openAvatarModal() {
+            document.getElementById('avatar-modal').style.display = 'flex';
+            updatePreview();
+        }
+
+        function closeAvatarModal() {
+            document.getElementById('avatar-modal').style.display = 'none';
+        }
+
+        function setAvatarStyle(style) {
+            selectedStyle = style;
+            document.querySelectorAll('.style-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.textContent.toLowerCase() === style);
+            });
+            updatePreview();
+        }
+
+        function randomizeAvatar() {
+            randomSeed = Math.random().toString(36).substring(7);
+            updatePreview();
+        }
+
+        function updatePreview() {
+            const url = `https://api.dicebear.com/7.x/${selectedStyle}/svg?seed=${randomSeed}`;
+            document.getElementById('avatar-preview').src = url;
+        }
+
+        async function saveAvatar() {
+            const newUrl = `https://api.dicebear.com/7.x/${selectedStyle}/svg?seed=${randomSeed}`;
+            const token = localStorage.getItem('token');
+
+            try {
+                const res = await fetch('/api/update-avatar', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ avatar: newUrl })
+                });
+
+                if (res.ok) {
+                    localStorage.setItem('userAvatar', newUrl);
+                    document.getElementById('user-avatar').src = newUrl;
+                    closeAvatarModal();
+                    alert("Avatar updated!");
+                } else {
+                    alert("Failed to update avatar");
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Error saving avatar");
+            }
+        }
 
         // Load stats (you can save these later)
         document.getElementById("rooms-created").textContent = localStorage.getItem("roomsCreated") || "0";
@@ -340,37 +457,28 @@
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
-                if (!res.ok) throw new Error("Failed to fetch");
-
+                if (res.status === 401) return;
                 const friends = await res.json();
 
-                if (!Array.isArray(friends)) {
-                    console.error("Expected array but got:", friends);
-                    document.getElementById('profile-friends-grid').innerHTML = '<p style="color:red;">Error loading friends.</p>';
-                    return;
-                }
+                if (Array.isArray(friends)) {
+                    document.getElementById("friends-added").textContent = friends.length;
+                    const grid = document.getElementById('profile-friends-grid');
 
-                document.getElementById("friends-added").textContent = friends.length;
-                localStorage.setItem("friendsAdded", friends.length);
+                    if (friends.length === 0) {
+                        grid.innerHTML = '<p style="color:#666; grid-column:1/-1;">No friends yet.</p>';
+                        return;
+                    }
 
-                const grid = document.getElementById('profile-friends-grid');
-                if (friends.length === 0) {
-                    grid.innerHTML = '<p style="color:#666; grid-column:1/-1;">No friends yet.</p>';
-                    return;
-                }
-
-                grid.innerHTML = friends.map(f => `
-                    <div style="background:var(--bg-panel); padding:15px; border-radius:12px; display:flex; align-items:center; gap:10px; border:1px solid var(--border);">
-                        <div style="width:32px; height:32px; background:linear-gradient(45deg, #E50914, #ff5e62); border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:1rem; color:white;">
-                            ${f.name.charAt(0).toUpperCase()}
+                    grid.innerHTML = friends.map(f => {
+                        const avatarUrl = f.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(f.name)}`;
+                        return `
+                        <div style="background:var(--bg-panel); padding:15px; border-radius:12px; display:flex; align-items:center; gap:10px; border:1px solid var(--border);">
+                            <img src="${avatarUrl}" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:2px solid var(--accent);">
+                            <span style="font-weight:600; font-size:0.95rem;">${f.name}</span>
                         </div>
-                        <span style="font-weight:600; font-size:0.95rem;">${f.name}</span>
-                    </div>
-                `).join('');
-            } catch (err) {
-                console.error("Failed to fetch friends:", err);
-                document.getElementById('profile-friends-grid').innerHTML = '<p style="color:red;">Failed to load friends.</p>';
-            }
+                    `}).join('');
+                }
+            } catch (err) { console.error(err); }
         }
 
         fetchProfileFriends();

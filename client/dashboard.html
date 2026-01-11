@@ -51,20 +51,218 @@
       <a href="profile.html">Profile</a>
     </div>
 
-    <div class="nav-actions">
-      <div class="avatar-status-wrapper">
-        <img src="https://via.placeholder.com/40" alt="Avatar" class="avatar">
-        <div class="status-indicator"></div>
-
-        <div class="status-menu">
-          <div class="status-option" data-status="available">Available</div>
-          <div class="status-option" data-status="watching">Watching</div>
-          <div class="status-option" data-status="dnd">Do not disturb</div>
-          <div class="status-option" data-status="silent">Silent</div>
+    <div class="notification-wrapper">
+      <button id="notif-btn" class="notif-btn">
+        🔔<span id="notif-badge" class="notif-badge" style="display:none">0</span>
+      </button>
+      <div id="notif-dropdown" class="notif-dropdown">
+        <div class="notif-header">Notifications</div>
+        <div id="notif-list" class="notif-list">
+          <div class="notif-empty">No new notifications</div>
         </div>
       </div>
     </div>
+
+    <div class="avatar-status-wrapper">
+      <img id="nav-avatar" src="https://via.placeholder.com/40" alt="Avatar" class="avatar">
+      <div class="status-indicator"></div>
+
+      <div class="status-menu">
+        <div class="status-option" data-status="available">Available</div>
+        <div class="status-option" data-status="watching">Watching</div>
+        <div class="status-option" data-status="dnd">Do not disturb</div>
+        <div class="status-option" data-status="silent">Silent</div>
+      </div>
+    </div>
+    </div>
   </nav>
+
+  <style>
+    /* Notification Styles */
+    .notification-wrapper {
+      position: relative;
+      margin-right: 15px;
+    }
+
+    .notif-btn {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .notif-badge {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      background: var(--accent);
+      color: white;
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      border-radius: 50%;
+      font-weight: bold;
+    }
+
+    .notif-dropdown {
+      display: none;
+      position: absolute;
+      top: 120%;
+      right: 0;
+      width: 300px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      overflow: hidden;
+    }
+
+    .notif-dropdown.show {
+      display: block;
+    }
+
+    .notif-header {
+      padding: 15px;
+      background: rgba(255, 255, 255, 0.05);
+      font-weight: bold;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .notif-list {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .notif-item {
+      padding: 15px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: start;
+      gap: 10px;
+    }
+
+    .notif-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .notif-content {
+      flex: 1;
+      font-size: 0.9rem;
+    }
+
+    .notif-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .btn-accept {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+
+    .btn-deny {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+
+    .notif-empty {
+      padding: 20px;
+      text-align: center;
+      color: #888;
+      font-style: italic;
+    }
+  </style>
+
+  <script>
+    // Notification Logic
+    document.addEventListener('DOMContentLoaded', () => {
+      const btn = document.getElementById('notif-btn');
+      const dropdown = document.getElementById('notif-dropdown');
+      const list = document.getElementById('notif-list');
+      const badge = document.getElementById('notif-badge');
+
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        dropdown.classList.toggle('show');
+      });
+
+      document.addEventListener('click', () => dropdown.classList.remove('show'));
+      dropdown.addEventListener('click', e => e.stopPropagation());
+
+      fetchNotifications();
+
+      async function fetchNotifications() {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        try {
+          const res = await fetch('/api/notifications', { headers: { 'Authorization': 'Bearer ' + token } });
+          const notifications = await res.json();
+
+          if (notifications.length > 0) {
+            badge.style.display = 'block';
+            badge.textContent = notifications.length;
+            list.innerHTML = notifications.map(n => `
+               <div class="notif-item" id="notif-${n.id}">
+                 <img src="${n.from_avatar || 'https://via.placeholder.com/40'}" class="notif-avatar">
+                 <div class="notif-content">
+                   <div><strong>${n.from_name}</strong> sent you a friend request.</div>
+                   <div class="notif-actions">
+                     <button class="btn-accept" onclick="respondFriend('${n.id}', 'accept')">Accept</button>
+                     <button class="btn-deny" onclick="respondFriend('${n.id}', 'deny')">Deny</button>
+                   </div>
+                 </div>
+               </div>
+             `).join('');
+          } else {
+            badge.style.display = 'none';
+            list.innerHTML = '<div class="notif-empty">No new notifications</div>';
+          }
+        } catch (e) { console.error("Notif fetch failed", e); }
+      }
+
+      window.respondFriend = async (id, action) => {
+        const token = localStorage.getItem('token');
+        try {
+          await fetch('/api/friends/respond', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ requestId: id, action })
+          });
+          // Remove item from UI
+          document.getElementById(`notif-${id}`).remove();
+
+          // Update Badge
+          const count = parseInt(badge.textContent) - 1;
+          badge.textContent = count;
+          if (count <= 0) {
+            badge.style.display = 'none';
+            list.innerHTML = '<div class="notif-empty">No new notifications</div>';
+          }
+
+          if (action === 'accept') {
+            // Refresh friends list if available
+            if (window.fetchFriends) window.fetchFriends();
+          }
+        } catch (e) { console.error("Respond failed", e); }
+      };
+    });
+  </script>
 
 
   <!-- DASHBOARD CONTENT -->
@@ -233,55 +431,54 @@
     // Fetch Friends
     async function fetchFriends() {
       const token = localStorage.getItem('token');
+      const grid = document.getElementById('friends-grid');
+
       if (!token) return;
+      if (!grid) {
+        console.warn("friends-grid element missing");
+        return;
+      }
 
       try {
-        console.log("Fetching friends...");
         const res = await fetch('/api/friends', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
-        if (!res.ok) throw new Error("Failed to fetch");
+        if (res.status === 401) {
+          localStorage.clear();
+          location.href = 'index.html';
+          return;
+        }
+
+        if (!res.ok) throw new Error("Failed to fetch friends");
 
         const friends = await res.json();
-        console.log("Friends fetched:", friends);
 
-        const grid = document.getElementById('friends-grid');
-        if (grid) {
-          if (!Array.isArray(friends)) {
-            console.error("Expected array but got:", friends);
-            grid.innerHTML = '<p style="color:red; grid-column:1/-1;">Error loading friends.</p>';
-            return;
-          }
-
-          if (friends.length === 0) {
-            grid.innerHTML = '<p style="color:#666; grid-column:1/-1;">No friends yet. Join a room to make connections!</p>';
-            return;
-          }
-
-          grid.innerHTML = friends.map(f => `
-  <div class="card" style="padding:20px; display:flex; align-items:center; gap:15px;">
-    <div
-      style="width:40px; height:40px; background:linear-gradient(45deg, #E50914, #ff5e62); border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:1.2rem;">
-      ${f.name.charAt(0).toUpperCase()}
-    </div>
-    <div>
-      <h3 style="font-size:1rem; margin-bottom:2px;">${f.name}</h3>
-      <p style="font-size:0.8rem; color:#888;">Friend</p>
-    </div>
-  </div>
-  `).join('');
-        } else {
-          console.error("friends-grid element not found!");
+        if (!Array.isArray(friends) || friends.length === 0) {
+          grid.innerHTML = '<p style="color:#666; font-size: 0.9rem;">No friends yet. Join a room to make connections!</p>';
+          return;
         }
+
+        grid.innerHTML = friends.map(f => {
+          const avatarUrl = f.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(f.name)}`;
+          return `
+            <div class="card" style="padding:15px; display:flex; align-items:center; gap:12px; background: rgba(255,255,255,0.03); border:none;">
+              <img src="${avatarUrl}" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:1px solid #333;">
+              <div>
+                <h3 style="font-size:0.95rem; margin:0; color:white;">${f.name}</h3>
+                <p style="font-size:0.75rem; color:#888; margin:0; margin-top:2px;">Friend</p>
+              </div>
+            </div>
+            `;
+        }).join('');
+
       } catch (err) {
         console.error("Failed to fetch friends:", err);
-        const grid = document.getElementById('friends-grid');
-        if (grid) grid.innerHTML = '<p style="color:red; grid-column:1/-1;">Failed to load friends.</p>';
+        grid.innerHTML = '<p style="color:#e50914; font-size:0.9rem;">Could not load friends.</p>';
       }
     }
 
-    fetchFriends();
+    document.addEventListener('DOMContentLoaded', fetchFriends);
 
     // Initialize Socket for Create Room events
     const socket = io();
