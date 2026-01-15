@@ -254,6 +254,59 @@
             .stats-grid {
                 grid-template-columns: 1fr;
             }
+
+            .danger-zone {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+
+        /* Danger Zone Styles */
+        .danger-zone {
+            margin-top: 60px;
+            border: 1px solid rgba(255, 51, 102, 0.25);
+            background: linear-gradient(to right, rgba(255, 51, 102, 0.05), transparent);
+            border-radius: 16px;
+            padding: 30px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .danger-info h3 {
+            color: #ff3366;
+            font-size: 1.3rem;
+            margin-bottom: 8px;
+            font-weight: 800;
+        }
+
+        .danger-info p {
+            color: #aaa;
+            font-size: 0.95rem;
+            margin: 0;
+            max-width: 500px;
+            line-height: 1.5;
+        }
+
+        .danger-btn {
+            background: transparent;
+            color: #ff3366;
+            border: 1px solid #ff3366;
+            padding: 12px 28px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .danger-btn:hover {
+            background: #ff3366;
+            color: white;
+            box-shadow: 0 5px 20px rgba(255, 51, 102, 0.3);
+            transform: translateY(-2px);
         }
     </style>
 </head>
@@ -345,6 +398,16 @@
                 <button onclick="copyEmail()" class="action-btn">Copy Email</button>
                 <button onclick="shareProfile()" class="action-btn">Share Profile</button>
                 <button onclick="logout()" class="logout-btn">Logout</button>
+            </div>
+
+            <!-- DANGER ZONE -->
+            <div class="danger-zone">
+                <div class="danger-info">
+                    <h3>Delete Account</h3>
+                    <p>Permanently remove your account, profile, and all associated data. This action is irreversible.
+                    </p>
+                </div>
+                <button onclick="deleteAccount()" class="danger-btn">Delete Account</button>
             </div>
         </div>
     </div>
@@ -450,6 +513,8 @@
         // Fetch Friends
         async function fetchProfileFriends() {
             const token = localStorage.getItem('token');
+            const grid = document.getElementById('profile-friends-grid');
+
             if (!token) return;
 
             try {
@@ -457,12 +522,18 @@
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
-                if (res.status === 401) return;
+                if (res.status === 401) {
+                    // Token expired or invalid
+                    grid.innerHTML = '<p style="color:#ff3366;">Session expired. Please relogin.</p>';
+                    return;
+                }
+
+                if (!res.ok) throw new Error("Server returned " + res.status);
+
                 const friends = await res.json();
 
                 if (Array.isArray(friends)) {
                     document.getElementById("friends-added").textContent = friends.length;
-                    const grid = document.getElementById('profile-friends-grid');
 
                     if (friends.length === 0) {
                         grid.innerHTML = '<p style="color:#666; grid-column:1/-1;">No friends yet.</p>';
@@ -477,8 +548,13 @@
                             <span style="font-weight:600; font-size:0.95rem;">${f.name}</span>
                         </div>
                     `}).join('');
+                } else {
+                    throw new Error("Invalid data format");
                 }
-            } catch (err) { console.error(err); }
+            } catch (err) {
+                console.error(err);
+                grid.innerHTML = '<p style="color:#ff3366;">Failed to load friends.</p>';
+            }
         }
 
         fetchProfileFriends();
@@ -502,6 +578,35 @@
             if (confirm("Are you sure you want to logout?")) {
                 localStorage.clear();
                 location.href = "index.html";
+            }
+        }
+
+        async function deleteAccount() {
+            if (!confirm("⚠️ ARE YOU SURE? ⚠️\n\nThis will permanently delete your account, friends, and data.\nThis action cannot be undone.")) {
+                return;
+            }
+
+            const token = localStorage.getItem('token');
+            if (!token) return;
+
+            try {
+                const res = await fetch('/api/auth/delete', {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (res.ok) {
+                    alert("Account selected for deletion. Goodbye!");
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    location.href = "index.html";
+                } else {
+                    const data = await res.json();
+                    alert("Failed to delete: " + (data.error || "Unknown error"));
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Server error during deletion.");
             }
         }
     </script>

@@ -658,25 +658,37 @@ app.get('/api/friends', async (req, res) => {
   if (!authHeader) return res.status(401).json({ error: "No token provided" });
 
   const token = authHeader.split(' ')[1];
+  let userId;
+
+  // 1. Verify Token
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    const userId = decoded.id;
+    userId = decoded.id;
+  } catch (err) {
+    console.error("Token Verification Failed:", err.message);
+    return res.status(401).json({ error: "Invalid token" });
+  }
 
+  // 2. Fetch Data
+  try {
     console.log(`[DEBUG] Fetching friends for User ID: ${userId}`);
 
+    // Simplified UNION query to handle bidirectional relationships reliably
     const result = await pool.query(
-      `SELECT DISTINCT u.id, u.name, u.email, u.avatar 
-       FROM friends f
-       JOIN users u ON (f.friend_id = u.id AND f.user_id = $1) OR (f.user_id = u.id AND f.friend_id = $1)
-       WHERE f.status = 'accepted' AND u.id != $1`,
+      `SELECT id, name, email, avatar FROM users 
+       WHERE id IN (
+           SELECT friend_id FROM friends WHERE user_id = $1 AND status = 'accepted'
+           UNION
+           SELECT user_id FROM friends WHERE friend_id = $1 AND status = 'accepted'
+       )`,
       [userId]
     );
 
     console.log(`[DEBUG] Found ${result.rows.length} friends`);
     res.json(result.rows);
   } catch (err) {
-    console.error("Get Friends Error:", err.message);
-    res.status(401).json({ error: "Invalid token" });
+    console.error("Get Friends DB Error:", err.message);
+    res.status(500).json({ error: "Failed to fetch friends" });
   }
 });
 
