@@ -661,6 +661,22 @@ app.get('/api/friends', async (req, res) => {
     res.status(500).json({ error: "Failed to fetch friends" });
   }
 });
+// 5. UPDATE NAME
+app.put('/api/auth/update-name', authenticateToken, async (req, res) => {
+  const { name } = req.body;
+  if (!name || name.trim().length < 2) {
+    return res.status(400).json({ error: "Name must be at least 2 characters" });
+  }
+
+  try {
+    const userId = req.user.id;
+    await pool.query('UPDATE users SET name = $1 WHERE id = $2', [name.trim(), userId]);
+    res.json({ success: true, message: "Name updated successfully" });
+  } catch (err) {
+    console.error("Update Name Error:", err);
+    res.status(500).json({ error: "Server error during name update" });
+  }
+});
 
 // 4. DELETE ACCOUNT
 app.delete('/api/auth/delete', authenticateToken, async (req, res) => {
