@@ -137,12 +137,6 @@ socket.on('updateUsers', (users) => {
 
     document.getElementById('user-list').innerHTML = users.map(u => {
         const hostBadge = u.isHost ? ' <span style="color:#ffd700; font-size:0.9em;">👑</span>' : '';
-        let friendBtn = '';
-
-        if (u.userId && myUserId && u.userId !== myUserId) {
-            friendBtn = `<button onclick="addFriend(${u.userId})" style="margin-left:10px; padding:2px 8px; font-size:0.8rem; background:var(--accent, #00eeff); border:none; border-radius:4px; color:black; cursor:pointer; font-weight:bold;">+</button>`;
-        }
-
         const avatarUrl = u.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(u.name)}`;
 
         return `<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; padding:5px; border-radius:8px; background:rgba(255,255,255,0.05);">
@@ -150,42 +144,11 @@ socket.on('updateUsers', (users) => {
                   <img src="${avatarUrl}" style="width:32px; height:32px; border-radius:50%; object-fit:cover; border:1px solid var(--accent);">
                   <span>${u.name}${hostBadge}</span>
               </div>
-              ${friendBtn}
             </div>`;
     }).join('');
 });
 
-window.addFriend = function (targetId) {
-    if (!myUserId) return showToast("Error: User ID not found", "error");
-    socket.emit('addFriend', { fromUserId: myUserId, toUserId: targetId });
-    showToast("Friend request sent!", "success");
-};
-
-// Friend Events
-socket.on('friendRequestReceived', (data) => {
-    if (myUserId && data.toUserId === myUserId) {
-        const toast = document.createElement('div');
-        toast.innerHTML = `
-      <p><strong>${data.fromName}</strong> sent a friend request!</p>
-      <button onclick="acceptFriend(${data.fromUserId}, this.parentElement)" style="margin-top:5px; background:white; color:black; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">Accept</button>
-    `;
-        toast.style.cssText = `
-      position:fixed; bottom:80px; right:30px; z-index:9999;
-      background:#00eeff; color:black; padding:16px; border-radius:16px;
-      font-weight:700; box-shadow:0 0 40px rgba(0,0,0,0.5);
-      animation:slideIn 0.4s;
-    `;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 10000);
-    }
-});
-
-window.acceptFriend = function (fromId, toastElem) {
-    socket.emit('acceptFriend', { userId: myUserId, friendId: fromId });
-    toastElem.remove();
-    showToast("Friend request accepted!", "success");
-};
-
+// Auto-Friend Notifications
 socket.on('friendRequestAccepted', (data) => {
     if (data.userId === myUserId || data.friendId === myUserId) {
         showToast("You are now friends!", "success");

@@ -418,8 +418,6 @@ io.on('connection', (socket) => {
   });
 
   socket.on('joinRoom', async ({ roomCode, userName, isHost, token, email }) => {
-    socket.join(roomCode);
-
     // Resolve User ID with Timeout Fallback
     let userId = null;
     try {
@@ -428,7 +426,16 @@ io.on('connection', (socket) => {
 
       if (token) {
         const decoded = jwt.verify(token, JWT_SECRET);
-        userId = decoded.id;
+        // Verify User still exists in DB (Avoid Ghost Users)
+        const checkUser = await Promise.race([
+          pool.query('SELECT id FROM users WHERE id = $1', [decoded.id]),
+          dbTimeout
+        ]);
+        if (checkUser.rows.length > 0) {
+          userId = decoded.id;
+        } else {
+          console.warn(`[DEBUG] Ghost user detected (ID: ${decoded.id}). Treating as guest.`);
+        }
       } else if (email) {
         // Race the DB query
         const userRes = await Promise.race([
@@ -458,38 +465,41 @@ io.on('connection', (socket) => {
       }
     }
 
-
-
     // Store user info
     socket.data.name = userName;
     socket.data.room = roomCode;
     socket.data.isHost = isHost;
     socket.data.userId = userId;
 
-    // Auto-Friend Logic for Private Rooms
-    const isPublic = publicRooms.has(roomCode);
-    console.log(`[DEBUG] joinRoom: User=${userName} ID=${userId} Room=${roomCode} Public=${isPublic}`);
+    // NOW Join the room (Ensures userId is ready for others to see)
+    socket.join(roomCode);
 
-    if (!isPublic && userId) {
+    // Auto-Friend Logic for ALL Rooms
+    console.log(`[DEBUG] joinRoom: User=${userName} ID=${userId} Room=${roomCode}`);
+
+    if (userId) {
       // Get other users in room
       const roomSockets = io.sockets.adapter.rooms.get(roomCode);
       if (roomSockets) {
-        console.log(`[DEBUG] Room sockets found: ${roomSockets.size}`);
         for (const socketId of roomSockets) {
           const otherSocket = io.sockets.sockets.get(socketId);
           const otherUserId = otherSocket.data.userId;
 
-          console.log(`[DEBUG] Checking socket ${socketId}: OtherUserID=${otherUserId}`);
-
           if (otherUserId && otherUserId !== userId) {
-            // Auto-add as friends (accepted)
+            // Auto-add as friends (accepted) in both directions
             try {
+              console.log(`[DEBUG] Adding auto-friend: User ${userId} <-> User ${otherUserId}`);
               await pool.query(
                 `INSERT INTO friends (user_id, friend_id, status) VALUES ($1, $2, 'accepted'), ($2, $1, 'accepted')
                  ON CONFLICT (user_id, friend_id) DO UPDATE SET status = 'accepted'`,
                 [userId, otherUserId]
               );
               console.log(`[SUCCESS] Auto-friended users ${userId} and ${otherUserId}`);
+
+              // Emit notification to both users
+              io.to(socket.id).emit('friendRequestAccepted', { userId, friendId: otherUserId });
+              io.to(socketId).emit('friendRequestAccepted', { userId: otherUserId, friendId: userId });
+
             } catch (err) { console.error("Auto-friend error:", err); }
           }
         }
@@ -542,47 +552,7 @@ io.on('connection', (socket) => {
     io.to(data.roomCode).emit('loadFile', data);
   });
 
-  // Friend System Events
-  // Friend System Events
-  socket.on('addFriend', async ({ fromUserId, toUserId }) => {
-    try {
-      // Check if already friends
-      const check = await pool.query(
-        `SELECT status FROM friends WHERE (user_id = $1 AND friend_id = $2) OR (user_id = $2 AND friend_id = $1)`,
-        [fromUserId, toUserId]
-      );
-
-      if (check.rows.length > 0) {
-        if (check.rows[0].status === 'accepted') return; // Already friends
-        if (check.rows[0].status === 'pending') return; // Request already sent
-      }
-
-      // Insert pending request
-      await pool.query(
-        `INSERT INTO friends (user_id, friend_id, status) VALUES ($1, $2, 'pending')`,
-        [fromUserId, toUserId]
-      );
-
-      // Notify the recipient
-      io.emit('friendRequestReceived', { fromUserId, toUserId, fromName: socket.data.name });
-
-    } catch (err) {
-      console.error("Add Friend Error:", err);
-    }
-  });
-
-  socket.on('acceptFriend', async ({ userId, friendId }) => {
-    try {
-      await pool.query(
-        `UPDATE friends SET status = 'accepted' 
-         WHERE (user_id = $1 AND friend_id = $2) OR (user_id = $2 AND friend_id = $1)`,
-        [userId, friendId]
-      );
-      io.emit('friendRequestAccepted', { userId, friendId });
-    } catch (err) {
-      console.error("Accept Friend Error:", err);
-    }
-  });
+  // Manual Friend Events REMOVED (Replaced by Auto-Friend)
 
   // WebRTC Signaling Events
   socket.on('join-video', (roomCode) => {
@@ -689,6 +659,44 @@ app.get('/api/friends', async (req, res) => {
   } catch (err) {
     console.error("Get Friends DB Error:", err.message);
     res.status(500).json({ error: "Failed to fetch friends" });
+  }
+});
+
+// 4. DELETE ACCOUNT
+app.delete('/api/auth/delete', authenticateToken, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const userId = req.user.id;
+    await client.query('BEGIN');
+
+    // 1. Delete friendships
+    await client.query('DELETE FROM friends WHERE user_id = $1 OR friend_id = $1', [userId]);
+
+    // 2. Delete connections
+    await client.query('DELETE FROM connections WHERE user_id = $1 OR friend_id = $1', [userId]);
+
+    // 3. Handle Rooms (Clear host_id or delete room)
+    // Option A: Set host_id to NULL so room remains (if there are members)
+    // Option B: Delete room entirely. Let's delete private rooms, keep public rooms but clear host.
+    await client.query('UPDATE rooms SET host_id = NULL WHERE host_id = $1', [userId]);
+
+    // 4. Delete user
+    const result = await client.query('DELETE FROM users WHERE id = $1', [userId]);
+
+    if (result.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    await client.query('COMMIT');
+    res.json({ success: true, message: "Account deleted successfully" });
+
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error("Delete Account Error:", err);
+    res.status(500).json({ error: "Server error during account deletion" });
+  } finally {
+    client.release();
   }
 });
 
