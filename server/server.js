@@ -355,9 +355,20 @@ app.post('/api/upload', upload.fields([{ name: 'video', maxCount: 1 }, { name: '
 // Store public rooms: key=roomCode, value={ roomCode, name, host, users, max, genre, lang }
 const publicRooms = new Map();
 
+// Store user statuses: key=userId, value=status string
+const userStatuses = new Map();
+
 // SOCKET.IO LOGIC
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
+
+  // Handle status updates
+  socket.on('updateStatus', ({ userId, status }) => {
+    if (userId) {
+      userStatuses.set(userId.toString(), status);
+      console.log(`[DEBUG] Status updated for User ${userId}: ${status}`);
+    }
+  });
 
   // Handle Room Creation (Public/Private)
   socket.on('createRoom', async ({ roomCode, type, name, capacity, userName, token, email }) => {
@@ -586,6 +597,11 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
+    const userId = socket.data.userId;
+    if (userId) {
+      userStatuses.set(userId.toString(), 'offline');
+    }
+
     const roomCode = socket.data.room;
     if (roomCode) {
       // If Host leaves, end the room for everyone
@@ -655,7 +671,14 @@ app.get('/api/friends', async (req, res) => {
     );
 
     console.log(`[DEBUG] Found ${result.rows.length} friends`);
-    res.json(result.rows);
+
+    // Attach statuses from memory
+    const friendsWithStatus = result.rows.map(f => ({
+      ...f,
+      status: userStatuses.get(f.id.toString()) || 'offline'
+    }));
+
+    res.json(friendsWithStatus);
   } catch (err) {
     console.error("Get Friends DB Error:", err.message);
     res.status(500).json({ error: "Failed to fetch friends" });

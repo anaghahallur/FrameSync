@@ -238,13 +238,11 @@
       <p class="subtitle">Perfectly synced YouTube rooms with friends</p>
 
       <div class="primary-actions">
-        <button class="primary-btn" id="primary-signup">Sign Up</button>
-        <button class="primary-btn" id="primary-signin">Sign In</button>
+        <button class="primary-btn" id="get-started-btn">Get Started</button>
       </div>
 
       <div class="google-buttons">
-        <div id="signup_button"></div>
-        <div id="login_button"></div>
+        <div id="google_login_button"></div>
       </div>
 
       <div class="footer">One click • Secure • No password needed with Google</div>
@@ -278,9 +276,8 @@
       }
     }
 
-    function triggerGoogleFlow(type) {
-      const selector = type === 'signup' ? '#signup_button div[role="button"]' : '#login_button div[role="button"]';
-      const target = document.querySelector(selector);
+    function triggerGoogleFlow() {
+      const target = document.querySelector('#google_login_button div[role="button"]');
       if (target) {
         target.focus();
         target.click();
@@ -290,8 +287,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('primary-signup').addEventListener('click', () => triggerGoogleFlow('signup'));
-      document.getElementById('primary-signin').addEventListener('click', () => triggerGoogleFlow('signin'));
+      document.getElementById('get-started-btn').addEventListener('click', triggerGoogleFlow);
     });
 
     window.onload = () => {
@@ -299,8 +295,12 @@
         client_id: "459591232868-cctp2i8f5bmpo3gi0um028esg56ifqrr.apps.googleusercontent.com",
         callback: handleCredentialResponse
       });
-      google.accounts.id.renderButton(document.getElementById("signup_button"), { theme: "filled_blue", size: "large", text: "signup_with", shape: "pill" });
-      google.accounts.id.renderButton(document.getElementById("login_button"), { theme: "outline", size: "large", text: "signin_with", shape: "pill" });
+      google.accounts.id.renderButton(document.getElementById("google_login_button"), {
+        theme: "outline",
+        size: "large",
+        text: "signin_with",
+        shape: "pill"
+      });
 
       if (localStorage.getItem("isLoggedIn") === "true") location.href = "dashboard.html";
     };

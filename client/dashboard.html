@@ -26,6 +26,7 @@
         document.body.classList.add('status-' + status);
 
         localStorage.setItem('userStatus', status);
+        syncStatusToServer(status);
         menu.classList.remove('show');
       });
     });
@@ -461,12 +462,23 @@
 
         grid.innerHTML = friends.map(f => {
           const avatarUrl = f.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(f.name)}`;
+          const statusColor = {
+            'available': '#2ecc71',
+            'watching': '#f1c40f',
+            'dnd': '#e74c3c',
+            'silent': '#95a5a6',
+            'offline': '#444'
+          }[f.status] || '#444';
+
           return `
-            <div class="card" style="padding:15px; display:flex; align-items:center; gap:12px; background: rgba(255,255,255,0.03); border:none;">
-              <img src="${avatarUrl}" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:1px solid #333;">
+            <div class="card" style="padding:15px; display:flex; align-items:center; gap:12px; background: rgba(255,255,255,0.03); border:none; position:relative;">
+              <div style="position:relative; width:40px; height:40px;">
+                <img src="${avatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover; border:1px solid #333;">
+                <div style="position:absolute; bottom:0; right:0; width:10px; height:10px; background:${statusColor}; border-radius:50%; border:2px solid #141414;"></div>
+              </div>
               <div>
                 <h3 style="font-size:0.95rem; margin:0; color:white;">${f.name}</h3>
-                <p style="font-size:0.75rem; color:#888; margin:0; margin-top:2px;">Friend</p>
+                <p style="font-size:0.75rem; color:#888; margin:0; margin-top:2px; text-transform:capitalize;">${f.status || 'offline'}</p>
               </div>
             </div>
             `;
@@ -482,6 +494,20 @@
 
     // Initialize Socket for Create Room events
     const socket = io();
+
+    // Sync Initial Status
+    const initialStatus = localStorage.getItem('userStatus') || 'available';
+    const currentUserId = localStorage.getItem('userId');
+    if (currentUserId) {
+      socket.emit('updateStatus', { userId: currentUserId, status: initialStatus });
+    }
+
+    function syncStatusToServer(status) {
+      const userId = localStorage.getItem('userId');
+      if (userId) {
+        socket.emit('updateStatus', { userId, status });
+      }
+    }
 
     let currentCode = '';
     let roomType = 'private';
