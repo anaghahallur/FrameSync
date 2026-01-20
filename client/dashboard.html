@@ -584,10 +584,12 @@
           userName: userName,
           token,
           email
+        }, (res) => {
+          if (res && res.success) {
+            // Redirect ONLY after server confirms DB save
+            location.href = `room.html?code=${currentCode}`;
+          }
         });
-
-        // Redirect directly for public rooms
-        location.href = `room.html?code=${currentCode}`;
 
       } else {
         // Emit to server to register private room (for DB persistence)
@@ -599,6 +601,10 @@
           userName: userName,
           token: localStorage.getItem('token'),
           email: localStorage.getItem('userEmail')
+        }, (res) => {
+          if (res && res.success) {
+            console.log("Private room saved to DB");
+          }
         });
 
         // Private Room - Show Success Modal

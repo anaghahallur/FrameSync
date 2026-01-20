@@ -5,6 +5,8 @@ const { Pool } = require('pg');
 const nodemailer = require('nodemailer');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
+const AdmZip = require('adm-zip');
 require('dotenv').config();
 
 const app = express();
@@ -346,17 +348,115 @@ app.post('/api/upload', upload.fields([{ name: 'video', maxCount: 1 }, { name: '
   };
 
   if (req.files.subtitle) {
-    response.subtitleUrl = `/uploads/${req.files.subtitle[0].filename}`;
+    const subFile = req.files.subtitle[0];
+    const subPath = subFile.path;
+    const subExt = path.extname(subFile.originalname).toLowerCase();
+
+    if (subExt === '.srt') {
+      try {
+        const srtContent = fs.readFileSync(subPath, 'utf8');
+        const vttContent = convertSrtToVtt(srtContent);
+        const vttPath = subPath.replace('.srt', '.vtt');
+        fs.writeFileSync(vttPath, vttContent);
+        // Point to the new .vtt file
+        response.subtitleUrl = `/uploads/${path.basename(vttPath)}`;
+      } catch (err) {
+        console.error("Manual SRT Conversion Error:", err);
+        response.subtitleUrl = `/uploads/${subFile.filename}`;
+      }
+    } else {
+      response.subtitleUrl = `/uploads/${subFile.filename}`;
+    }
   }
 
   res.json(response);
 });
+
+// --- SUBDL API INTEGRATION (Disabled) ---
+// const SUBDL_API_URL = 'https://api.subdl.com/api/v1/subtitles';
+
+// Robust SRT to VTT converter
+function convertSrtToVtt(srtData) {
+  // Normalize line endings and remove BOM if present
+  let vttData = "WEBVTT\n\n";
+  let content = srtData.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/^\uFEFF/, '');
+
+  // Convert comma to dot for milliseconds (SRT uses , while VTT uses .)
+  // Matches 00:00:00,000 or 00:00,000 or 0:00:00,000
+  content = content.replace(/(\d{1,2}:\d{2}(?::\d{2})?),(\d{3})/g, '$1.$2');
+
+  vttData += content;
+  return vttData;
+}
+
+/*
+app.get('/api/subtitles/search', async (req, res) => {
+  const { query, languages = 'EN' } = req.query;
+  const apiKey = process.env.SUBDL_API_KEY;
+
+  if (!query) return res.status(400).json({ error: "Query required" });
+
+  try {
+    const url = `${SUBDL_API_URL}?api_key=${apiKey}&film_name=${encodeURIComponent(query)}&languages=${languages}`;
+    const response = await fetch(url);
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    console.error("SubDL Search Error:", err);
+    res.status(500).json({ error: "Failed to search subtitles" });
+  }
+});
+*/
+
+/*
+app.get('/api/subtitles/download', async (req, res) => {
+  let { url } = req.query; // SubDL provides a full download link or relative path
+  if (!url) return res.status(400).json({ error: "URL required" });
+
+  // Handle relative URLs from SubDL
+  if (url.startsWith('/')) {
+    url = `https://subdl.com${url}`;
+  }
+
+  try {
+    const response = await fetch(url);
+    const buffer = await response.arrayBuffer();
+    const nodeBuffer = Buffer.from(buffer);
+
+    let srtContent = "";
+
+    // Check if it's a ZIP file
+    if (url.toLowerCase().endsWith('.zip')) {
+      const zip = new AdmZip(nodeBuffer);
+      const zipEntries = zip.getEntries();
+      // Find the first .srt file
+      const srtEntry = zipEntries.find(entry => entry.entryName.toLowerCase().endsWith('.srt'));
+      if (!srtEntry) throw new Error("No SRT found in ZIP");
+      srtContent = srtEntry.getData().toString('utf8');
+    } else {
+      srtContent = nodeBuffer.toString('utf8');
+    }
+
+    const vttContent = convertSrtToVtt(srtContent);
+    // Add CORS in case track is loaded from different context
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Content-Type', 'text/vtt');
+    res.send(vttContent);
+  } catch (err) {
+    console.error("SubDL Download Error:", err);
+    res.status(500).json({ error: "Failed to process subtitle" });
+  }
+});
+*/
 
 // Store public rooms: key=roomCode, value={ roomCode, name, host, users, max, genre, lang }
 const publicRooms = new Map();
 
 // Store user statuses: key=userId, value=status string
 const userStatuses = new Map();
+
+// Store room media state: key=roomCode, value={ type: 'youtube'|'file', ...data }
+const roomMediaStates = new Map();
 
 // SOCKET.IO LOGIC
 io.on('connection', (socket) => {
@@ -371,8 +471,8 @@ io.on('connection', (socket) => {
   });
 
   // Handle Room Creation (Public/Private)
-  socket.on('createRoom', async ({ roomCode, type, name, capacity, userName, token, email }) => {
-    console.log(`[DEBUG] createRoom received: Code=${roomCode} Type=${type} User=${userName} Email=${email} Token=${!!token}`);
+  socket.on('createRoom', async ({ roomCode, type, name, capacity, userName, token, email }, callback) => {
+    console.log(`[SYNC] createRoom attempt: Code=${roomCode} Type=${type} User=${userName}`);
 
     // 1. Resolve User ID
     let userId = null;
@@ -380,20 +480,12 @@ io.on('connection', (socket) => {
       if (token) {
         const decoded = jwt.verify(token, JWT_SECRET);
         userId = decoded.id;
-        console.log(`[DEBUG] Resolved UserID from Token: ${userId}`);
       } else if (email) {
         const userRes = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
-        if (userRes.rows.length > 0) {
-          userId = userRes.rows[0].id;
-          console.log(`[DEBUG] Resolved UserID from Email: ${userId}`);
-        } else {
-          console.log(`[DEBUG] No user found for email: ${email}`);
-        }
-      } else {
-        console.log(`[DEBUG] No token or email provided.`);
+        if (userRes.rows.length > 0) userId = userRes.rows[0].id;
       }
     } catch (err) {
-      console.error("[DEBUG] Auth error in createRoom:", err.message);
+      console.error("[SYNC] Auth error in createRoom:", err.message);
     }
 
     // 2. Insert into DB (if user exists)
@@ -404,28 +496,23 @@ io.on('connection', (socket) => {
            ON CONFLICT (code) DO NOTHING`,
           [roomCode, userId, type === 'public']
         );
-        console.log(`[SUCCESS] Room ${roomCode} saved to DB for user ${userId}`);
+        console.log(`[SYNC] Room ${roomCode} saved to DB for user ${userId}`);
       } catch (dbErr) {
-        console.error("[ERROR] DB Insert Failed:", dbErr);
+        console.error("[SYNC] DB Insert Failed:", dbErr);
       }
-    } else {
-      console.warn(`[WARN] Room ${roomCode} created but no user found in DB. Skipping persistence.`);
     }
 
     // 3. Store in Memory (Public Rooms)
     if (type === 'public') {
       publicRooms.set(roomCode, {
-        roomCode,
-        title: name,
-        host: userName,
-        users: 0, // Will update on join
-        max: parseInt(capacity) || 8,
-        genre: 'General', // Default for now
-        lang: 'English',  // Default for now
-        live: true
+        roomCode, title: name, host: userName, users: 0,
+        max: parseInt(capacity) || 8, status: 'live'
       });
-      console.log(`Public room created: ${name} (${roomCode})`);
+      console.log(`[SYNC] Public room live: ${name} (${roomCode})`);
     }
+
+    // Acknowledge to client
+    if (callback) callback({ success: true, roomCode });
   });
 
   socket.on('joinRoom', async ({ roomCode, userName, isHost, token, email }) => {
@@ -543,6 +630,13 @@ io.on('connection', (socket) => {
     // Send welcome message
     socket.emit('chatMessage', { name: 'System', text: `Welcome to room ${roomCode}!` });
     socket.to(roomCode).emit('chatMessage', { name: 'System', text: `${userName} has joined.` });
+
+    // LATE-JOINER SYNC: Send current media state if it exists
+    const mediaState = roomMediaStates.get(roomCode);
+    if (mediaState) {
+      console.log(`[SYNC] Sending initial state to ${userName} for room ${roomCode}`);
+      socket.emit('roomInitialSync', mediaState);
+    }
   });
 
   socket.on('chatMessage', ({ roomCode, text }) => {
@@ -556,10 +650,12 @@ io.on('connection', (socket) => {
   });
 
   socket.on('loadVideo', (data) => {
+    roomMediaStates.set(data.roomCode, { type: 'youtube', ...data });
     io.to(data.roomCode).emit('loadVideo', data);
   });
 
   socket.on('loadFile', (data) => {
+    roomMediaStates.set(data.roomCode, { type: 'file', ...data });
     io.to(data.roomCode).emit('loadFile', data);
   });
 
@@ -608,6 +704,9 @@ io.on('connection', (socket) => {
       if (socket.data.isHost) {
         io.to(roomCode).emit('roomEnded');
         io.socketsLeave(roomCode); // Force everyone out
+
+        // Remove media state
+        roomMediaStates.delete(roomCode);
 
         // Remove from public rooms if it exists
         if (publicRooms.has(roomCode)) {
@@ -698,6 +797,26 @@ app.put('/api/auth/update-name', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error("Update Name Error:", err);
     res.status(500).json({ error: "Server error during name update" });
+  }
+});
+
+// 5. GET USER STATS
+app.get('/api/auth/stats', authenticateToken, async (req, res) => {
+  try {
+    const userId = parseInt(req.user.id);
+    if (isNaN(userId)) return res.status(400).json({ error: "Invalid User ID in token" });
+
+    // Explicitly cast host_id just in case of any weird DB types
+    const roomCountRes = await pool.query('SELECT COUNT(*) FROM rooms WHERE host_id::int = $1', [userId]);
+
+    res.json({
+      roomsCreated: parseInt(roomCountRes.rows[0].count) || 0,
+      watchHours: 0,
+      videosSynced: 0
+    });
+  } catch (err) {
+    console.error("[SYNC] Get Stats Error:", err);
+    res.status(500).json({ error: "Failed to fetch user stats" });
   }
 });
 

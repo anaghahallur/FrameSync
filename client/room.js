@@ -65,9 +65,32 @@ socket.emit('joinRoom', { roomCode, userName, isHost, token, email });
 // User List with Friend Options
 let myUserId = null;
 
+let lastUserCount = 0;
+
 socket.on('updateUsers', (users) => {
     // Update Bubbles for all users
     console.log("updateUsers received:", users);
+
+    // LATE-JOINER SYNC: If I am the host and someone joined, push my latest state
+    if (isHost && users.length > lastUserCount) {
+        console.log("[SYNC] New user detected. Pushing state pulse...");
+        if (currentMode === 'youtube' && ytPlayer && ytPlayer.getCurrentTime) {
+            emitVideoState({
+                roomCode,
+                mode: 'youtube',
+                state: ytPlayer.getPlayerState(),
+                time: ytPlayer.getCurrentTime()
+            });
+        } else if (currentMode === 'file') {
+            emitVideoState({
+                roomCode,
+                mode: 'file',
+                state: html5Player.paused ? 'pause' : 'play',
+                time: html5Player.currentTime
+            });
+        }
+    }
+    lastUserCount = users.length;
 
     // robustly find myUserId using socket.id
     const me = users.find(u => u.socketId === socket.id);
@@ -311,6 +334,12 @@ function playFile(url, subtitleUrl) {
     html5Player.src = url;
     html5Player.innerHTML = ''; // Clear old tracks
 
+    // Explicitly unmute and set volume to 100%
+    html5Player.muted = false;
+    html5Player.volume = 1.0;
+    // For CORS-served tracks (like our auto-download API)
+    html5Player.crossOrigin = 'anonymous';
+
     if (subtitleUrl) {
         const track = document.createElement('track');
         track.kind = 'subtitles';
@@ -320,16 +349,40 @@ function playFile(url, subtitleUrl) {
         track.default = true;
         html5Player.appendChild(track);
 
-        // Force display using textTracks API
-        html5Player.addEventListener('loadedmetadata', () => {
-            if (html5Player.textTracks[0]) {
+        // Helper to force subtitles to appear
+        const showSubtitles = () => {
+            if (html5Player.textTracks && html5Player.textTracks[0]) {
                 html5Player.textTracks[0].mode = 'showing';
+                console.log("[Subtitles] Track mode set to showing");
             }
-        }, { once: true });
+        };
+
+        // Try immediately
+        showSubtitles();
+        // Try on metadata load
+        html5Player.addEventListener('loadedmetadata', showSubtitles, { once: true });
+        // Try on slight delay (some browsers are slow to parse the track element)
+        setTimeout(showSubtitles, 500);
+        setTimeout(showSubtitles, 2000);
     }
 
-    html5Player.play();
+    // Audio Compatibility Check
+    html5Player.addEventListener('loadeddata', () => {
+        // Some browsers don't support AC3/DTS audio in MKV.
+        // If the video plays but audible tracks are missing/silent, we alert.
+        if (html5Player.mozHasAudio === false || (html5Player.webkitAudioDecodedByteCount === 0 && html5Player.readyState > 2)) {
+            console.warn("Audio track detected but might not be playable in this browser.");
+            showToast("Audio might be unsupported (AC3/DTS). Try an MP4 file if silent.", "error");
+        }
+    }, { once: true });
+
+    html5Player.play().catch(err => {
+        console.error("Playback failed:", err);
+        showToast("Playback blocked. Please click anywhere to enable audio.", "info");
+    });
 }
+
+// --- SUBDL CLIENT LOGIC (Disabled) ---
 
 function switchMode(mode) {
     currentMode = mode;
@@ -403,6 +456,48 @@ socket.on('authError', (data) => {
     localStorage.clear();
     location.href = 'index.html';
 });
+
+// LATE-JOINER SYNC: Handle initial room state from server
+socket.on('roomInitialSync', (data) => {
+    console.log("[SYNC] Received initial room state:", data);
+    if (data.type === 'youtube') {
+        switchMode('youtube');
+        // Wait for player to be ready if it isn't
+        const loadYT = () => {
+            if (ytPlayer && ytPlayer.loadVideoById) {
+                ytPlayer.loadVideoById(data.videoId);
+            } else {
+                setTimeout(loadYT, 500);
+            }
+        };
+        loadYT();
+    } else if (data.type === 'file') {
+        switchMode('file');
+        playFile(data.url, data.subtitleUrl);
+    }
+});
+
+// PERIODIC SYNC PULSE (Host Only)
+// Every 10 seconds, the host pushes a state pulse to correct any long-term drift
+setInterval(() => {
+    if (isHost && !isSyncing) {
+        if (currentMode === 'youtube' && ytPlayer && ytPlayer.getCurrentTime) {
+            emitVideoState({
+                roomCode,
+                mode: 'youtube',
+                state: ytPlayer.getPlayerState(),
+                time: ytPlayer.getCurrentTime()
+            });
+        } else if (currentMode === 'file') {
+            emitVideoState({
+                roomCode,
+                mode: 'file',
+                state: html5Player.paused ? 'pause' : 'play',
+                time: html5Player.currentTime
+            });
+        }
+    }
+}, 10000);
 
 function sendMessage() {
     const input = document.getElementById('chat-input');

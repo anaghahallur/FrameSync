@@ -279,27 +279,36 @@
 
         <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
           <div style="display:flex; gap:10px;">
-            <button onclick="switchControlTab('youtube')" class="btn"
+            <button id="tab-youtube-btn" onclick="switchControlTab('youtube')" class="btn tab-btn"
               style="padding:8px 15px; font-size:0.9rem;">YouTube</button>
-            <button onclick="switchControlTab('file')" class="btn"
-              style="padding:8px 15px; font-size:0.9rem;">File</button>
+            <button id="tab-file-btn" onclick="switchControlTab('file')" class="btn tab-btn"
+              style="padding:8px 15px; font-size:0.9rem; opacity:0.5;">File</button>
           </div>
 
           <!-- YouTube Inputs -->
           <div id="tab-youtube" class="control-tab" style="flex:1; display:flex; gap:10px; margin-left:15px;">
             <input type="text" id="youtube-link" placeholder="Paste YouTube link..."
               style="flex:1; padding:8px; background:rgba(255,255,255,0.1); border:1px solid #444; color:white; border-radius:6px;">
-            <button class="btn" onclick="loadYouTube()" style="padding:8px 15px;">Load</button>
+            <button class="btn" onclick="loadYouTube()">Load</button>
           </div>
 
           <!-- File Inputs -->
           <div id="tab-file" class="control-tab"
-            style="display:none; flex:1; gap:10px; align-items:center; margin-left:15px;">
-            <label class="btn" style="cursor:pointer; padding:8px;">📂 <input type="file" id="file-upload"
+            style="display:none; flex:1; gap:30px; align-items:center; margin-left:15px;">
+            <label class="btn btn-sm" style="cursor:pointer;">Video <input type="file" id="file-upload"
                 accept="video/*,.mkv" style="display:none" onchange="handleFileSelect(this, 'video')"></label>
-            <label class="btn" style="cursor:pointer; padding:8px;">📄 <input type="file" id="sub-upload"
+            <span id="file-name-display"
+              style="font-size:0.8rem; color:#888; max-width:100px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
+
+            <label class="btn btn-sm" style="cursor:pointer;">Subtitle <input type="file" id="sub-upload"
                 accept=".vtt,.srt" style="display:none" onchange="handleFileSelect(this, 'subtitle')"></label>
-            <button class="btn" onclick="uploadFiles()" style="padding:8px;">Play</button>
+            <span id="sub-name-display"
+              style="font-size:0.8rem; color:#888; max-width:100px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
+
+            <button class="btn" onclick="uploadFiles()">Play</button>
+          </div>
+          <div id="subdl-results"
+            style="display:none; position:absolute; bottom:100%; left:0; width:100%; background:rgba(0,0,0,0.95); backdrop-filter:blur(20px); padding:15px; border-radius:12px; border:1px solid rgba(229,9,20,0.3); max-height:250px; overflow-y:auto; z-index:100; box-shadow: 0 -10px 30px rgba(0,0,0,0.5);">
           </div>
         </div>
       </div>

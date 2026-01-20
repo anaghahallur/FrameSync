@@ -578,10 +578,33 @@
             }
         }
 
-        // Load stats (you can save these later)
-        document.getElementById("rooms-created").textContent = localStorage.getItem("roomsCreated") || "0";
-        document.getElementById("watch-hours").textContent = localStorage.getItem("watchHours") || "0";
-        document.getElementById("videos-synced").textContent = localStorage.getItem("videosSynced") || "0";
+        // Load stats
+        async function fetchUserStats() {
+            const token = localStorage.getItem('token');
+            const roomsEl = document.getElementById("rooms-created");
+            if (!token) return;
+
+            try {
+                const res = await fetch('/api/auth/stats', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const stats = await res.json();
+                    roomsEl.textContent = stats.roomsCreated || "0";
+                    document.getElementById("watch-hours").textContent = stats.watchHours || "0";
+                    document.getElementById("videos-synced").textContent = stats.videosSynced || "0";
+                    localStorage.setItem("roomsCreated", stats.roomsCreated || "0");
+                } else {
+                    console.error("Stats fetch failed:", res.status);
+                    roomsEl.textContent = "!"; // Error indicator
+                }
+            } catch (err) {
+                console.error("Failed to fetch stats:", err);
+                roomsEl.textContent = "!";
+            }
+        }
+
+        fetchUserStats();
 
         // Fetch Friends
         async function fetchProfileFriends() {
