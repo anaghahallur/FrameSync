@@ -649,14 +649,36 @@ io.on('connection', (socket) => {
     socket.to(data.roomCode).emit('videoState', data);
   });
 
-  socket.on('loadVideo', (data) => {
+  socket.on('loadVideo', async (data) => {
     roomMediaStates.set(data.roomCode, { type: 'youtube', ...data });
     io.to(data.roomCode).emit('loadVideo', data);
+
+    // Record sync in DB
+    const userId = socket.data.userId;
+    if (userId) {
+      try {
+        await pool.query(
+          'INSERT INTO synced_videos (room_code, user_id, media_type, media_id) VALUES ($1, $2, $3, $4)',
+          [data.roomCode, userId, 'youtube', data.videoId]
+        );
+      } catch (e) { console.error("[SYNC] Failed to record YouTube sync:", e.message); }
+    }
   });
 
-  socket.on('loadFile', (data) => {
+  socket.on('loadFile', async (data) => {
     roomMediaStates.set(data.roomCode, { type: 'file', ...data });
     io.to(data.roomCode).emit('loadFile', data);
+
+    // Record sync in DB
+    const userId = socket.data.userId;
+    if (userId) {
+      try {
+        await pool.query(
+          'INSERT INTO synced_videos (room_code, user_id, media_type, media_id) VALUES ($1, $2, $3, $4)',
+          [data.roomCode, userId, 'file', data.filename || data.url]
+        );
+      } catch (e) { console.error("[SYNC] Failed to record file sync:", e.message); }
+    }
   });
 
   // Manual Friend Events REMOVED (Replaced by Auto-Friend)
@@ -808,11 +830,12 @@ app.get('/api/auth/stats', authenticateToken, async (req, res) => {
 
     // Explicitly cast host_id just in case of any weird DB types
     const roomCountRes = await pool.query('SELECT COUNT(*) FROM rooms WHERE host_id::int = $1', [userId]);
+    const videoCountRes = await pool.query('SELECT COUNT(*) FROM synced_videos WHERE user_id = $1', [userId]);
 
     res.json({
       roomsCreated: parseInt(roomCountRes.rows[0].count) || 0,
+      videosSynced: parseInt(videoCountRes.rows[0].count) || 0,
       watchHours: 0,
-      videosSynced: 0
     });
   } catch (err) {
     console.error("[SYNC] Get Stats Error:", err);

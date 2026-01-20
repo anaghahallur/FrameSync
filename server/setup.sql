@@ -36,3 +36,13 @@ CREATE TABLE IF NOT EXISTS friends (
   created_at TIMESTAMP DEFAULT NOW(),
   UNIQUE(user_id, friend_id)
 );
+
+-- SYNCED VIDEOS TRACKING
+CREATE TABLE IF NOT EXISTS synced_videos (
+  id SERIAL PRIMARY KEY,
+  room_code CHAR(6),
+  user_id INT REFERENCES users(id),
+  media_type TEXT, -- 'youtube' or 'file'
+  media_id TEXT,   -- videoId or filename
+  synced_at TIMESTAMP DEFAULT NOW()
+);
