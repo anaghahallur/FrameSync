@@ -400,6 +400,14 @@
                 </div>
             </div>
 
+            <!-- REACTION LADDER -->
+            <div id="reaction-ladder-section" style="margin-bottom: 50px;">
+                <h3 style="margin-bottom:20px; font-size:1.5rem; color:var(--text-main);">Reaction Ladder</h3>
+                <div id="reaction-ladder" class="reaction-ladder-grid">
+                    <p style="color:#666;">React in some rooms to see your trends!</p>
+                </div>
+            </div>
+
             <!-- FRIENDS LIST SECTION -->
             <div style="margin-bottom:40px;">
                 <h3 style="margin-bottom:20px; font-size:1.5rem; color:var(--text-main);">Your Friends</h3>
@@ -442,6 +450,38 @@
         .style-btn.active {
             border-color: var(--accent);
             color: white;
+        }
+
+        .reaction-ladder-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 20px;
+        }
+
+        .ladder-item {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            padding: 20px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: 0.2s;
+        }
+
+        .ladder-item:hover {
+            border-color: var(--accent);
+            transform: scale(1.02);
+        }
+
+        .ladder-emoji {
+            font-size: 2rem;
+        }
+
+        .ladder-count {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--accent);
         }
     </style>
 
@@ -594,6 +634,20 @@
                     document.getElementById("watch-hours").textContent = stats.watchHours || "0";
                     document.getElementById("videos-synced").textContent = stats.videosSynced || "0";
                     localStorage.setItem("roomsCreated", stats.roomsCreated || "0");
+
+                    // Render Reaction Ladder
+                    const ladder = document.getElementById("reaction-ladder");
+                    if (stats.topReactions && stats.topReactions.length > 0) {
+                        ladder.innerHTML = stats.topReactions.map(r => `
+                            <div class="ladder-item">
+                                <span class="ladder-emoji">${r.emoji}</span>
+                                <span class="ladder-count">${r.count}</span>
+                            </div>
+                        `).join('');
+
+                        // Store top emoji for dashboard
+                        localStorage.setItem("topEmoji", stats.topReactions[0].emoji);
+                    }
                 } else {
                     console.error("Stats fetch failed:", res.status);
                     roomsEl.textContent = "!"; // Error indicator
