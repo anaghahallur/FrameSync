@@ -510,9 +510,10 @@ function sendMessage() {
 }
 
 function leaveRoom() {
+    socket.emit('leaveRoom', roomCode);
+
     if (isHost && highlightClips.length > 0) {
-        // If Host has highlights, show modal first
-        // Stop recorder if active
+        // If Host has highlights, show modal and wait for close to redirect
         if (streamReference) {
             stopHighlighting();
         }
@@ -520,13 +521,6 @@ function leaveRoom() {
         return;
     }
 
-    socket.emit('leaveRoom', roomCode);
-    sessionStorage.removeItem('isHost');
-    location.href = 'dashboard.html';
-}
-
-function closeHighlightModal() {
-    socket.emit('leaveRoom', roomCode);
     sessionStorage.removeItem('isHost');
     location.href = 'dashboard.html';
 }
@@ -645,10 +639,8 @@ function finalizeHighlightReel() {
 
 function closeHighlightModal() {
     document.getElementById('highlight-modal').style.display = 'none';
-    // If this was called as part of a leave flow, redirect
-    if (socket.disconnected || !roomCode) {
-        location.href = 'dashboard.html';
-    }
+    sessionStorage.removeItem('isHost');
+    location.href = 'dashboard.html';
 }
 
 // --- REACTION SYSTEM ---
