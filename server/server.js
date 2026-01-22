@@ -573,6 +573,7 @@ io.on('connection', (socket) => {
     socket.data.room = roomCode;
     socket.data.isHost = isHost;
     socket.data.userId = userId;
+    socket.data.sessionStart = Date.now();
 
     // NOW Join the room (Ensures userId is ready for others to see)
     socket.join(roomCode);
@@ -644,7 +645,18 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('leaveRoom', (roomCode) => {
+  socket.on('leaveRoom', async (roomCode) => {
+    // Track watch time before leaving
+    if (socket.data.userId && socket.data.sessionStart) {
+      const durationSeconds = Math.floor((Date.now() - socket.data.sessionStart) / 1000);
+      if (durationSeconds > 0) {
+        try {
+          await pool.query('UPDATE users SET watch_time = watch_time + $1 WHERE id = $2', [durationSeconds, socket.data.userId]);
+        } catch (e) { console.error("[STATS] Failed to update watch time:", e.message); }
+      }
+      delete socket.data.sessionStart;
+    }
+
     if (socket.data.isHost) {
       io.to(roomCode).emit('roomEnded');
       io.socketsLeave(roomCode);
@@ -755,6 +767,17 @@ io.on('connection', (socket) => {
     const userId = socket.data.userId;
     if (userId) {
       userStatuses.set(userId.toString(), 'offline');
+
+      // Track watch time on disconnect
+      if (socket.data.sessionStart) {
+        const durationSeconds = Math.floor((Date.now() - socket.data.sessionStart) / 1000);
+        if (durationSeconds > 0) {
+          try {
+            pool.query('UPDATE users SET watch_time = watch_time + $1 WHERE id = $2', [durationSeconds, userId]);
+          } catch (e) { console.error("[STATS] Failed to update watch time on disconnect:", e.message); }
+        }
+        delete socket.data.sessionStart;
+      }
     }
 
     const roomCode = socket.data.room;
@@ -867,6 +890,7 @@ app.get('/api/auth/stats', authenticateToken, async (req, res) => {
 
     const roomCountRes = await pool.query('SELECT COUNT(*) FROM rooms WHERE host_id::int = $1', [userId]);
     const videoCountRes = await pool.query('SELECT COUNT(*) FROM synced_videos WHERE user_id = $1', [userId]);
+    const watchTimeRes = await pool.query('SELECT watch_time FROM users WHERE id = $1', [userId]);
 
     // Get Top 3 Reactions
     const topReactionsRes = await pool.query(`
@@ -878,6 +902,9 @@ app.get('/api/auth/stats', authenticateToken, async (req, res) => {
       LIMIT 3
     `, [userId]);
 
+    const watchSeconds = watchTimeRes.rows[0]?.watch_time || 0;
+    const watchHours = (watchSeconds / 3600).toFixed(1);
+
     res.json({
       roomsCreated: parseInt(roomCountRes.rows[0].count) || 0,
       videosSynced: parseInt(videoCountRes.rows[0].count) || 0,
@@ -885,7 +912,7 @@ app.get('/api/auth/stats', authenticateToken, async (req, res) => {
         emoji: r.emoji,
         count: parseInt(r.count)
       })),
-      watchHours: 0,
+      watchHours: parseFloat(watchHours),
     });
   } catch (err) {
     console.error("[SYNC] Get Stats Error:", err);

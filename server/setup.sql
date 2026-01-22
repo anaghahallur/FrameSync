@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS users (
   email TEXT UNIQUE NOT NULL,
   password TEXT NOT NULL,
   avatar TEXT,
+  watch_time INTEGER DEFAULT 0, -- total seconds watched
   created_at TIMESTAMP DEFAULT NOW()
 );
 
