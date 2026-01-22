@@ -55,5 +55,6 @@ CREATE TABLE IF NOT EXISTS scheduled_rooms (
   scheduled_at TIMESTAMP NOT NULL,
   capacity INT DEFAULT 8,
   is_public BOOLEAN DEFAULT FALSE,
+  room_code CHAR(6),
   created_at TIMESTAMP DEFAULT NOW()
 );
