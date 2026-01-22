@@ -181,6 +181,7 @@ socket.on('friendRequestAccepted', (data) => {
 // Show host controls AND enable video controls for host
 if (isHost) {
     document.getElementById('btn-host-tools').style.display = 'flex';
+    document.getElementById('btn-highlight').style.display = 'flex';
     document.getElementById('html5-player').controls = true;
 } else {
     // Enable Overlay for Guests
@@ -644,6 +645,10 @@ function finalizeHighlightReel() {
 
 function closeHighlightModal() {
     document.getElementById('highlight-modal').style.display = 'none';
+    // If this was called as part of a leave flow, redirect
+    if (socket.disconnected || !roomCode) {
+        location.href = 'dashboard.html';
+    }
 }
 
 // --- REACTION SYSTEM ---

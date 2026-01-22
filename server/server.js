@@ -644,6 +644,27 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('leaveRoom', (roomCode) => {
+    if (socket.data.isHost) {
+      io.to(roomCode).emit('roomEnded');
+      io.socketsLeave(roomCode);
+      roomMediaStates.delete(roomCode);
+      if (publicRooms.has(roomCode)) {
+        publicRooms.delete(roomCode);
+        io.emit('publicRoomsList', Array.from(publicRooms.values()));
+      }
+    } else {
+      socket.leave(roomCode);
+      // Trigger update for others
+      const users = Array.from(io.sockets.adapter.rooms.get(roomCode) || []).map(id => {
+        const s = io.sockets.sockets.get(id);
+        return { name: s.data.name, isHost: s.data.isHost, userId: s.data.userId };
+      });
+      io.to(roomCode).emit('updateUsers', users);
+      io.to(roomCode).emit('chatMessage', { name: 'System', text: `${socket.data.name} has left.` });
+    }
+  });
+
   socket.on('chatMessage', ({ roomCode, text }) => {
     io.to(roomCode).emit('chatMessage', { name: socket.data.name, text });
   });
