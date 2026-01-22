@@ -46,3 +46,14 @@ CREATE TABLE IF NOT EXISTS synced_videos (
   media_id TEXT,   -- videoId or filename
   synced_at TIMESTAMP DEFAULT NOW()
 );
+
+-- SCHEDULED ROOMS
+CREATE TABLE IF NOT EXISTS scheduled_rooms (
+  id SERIAL PRIMARY KEY,
+  user_id INT REFERENCES users(id),
+  room_name TEXT NOT NULL,
+  scheduled_at TIMESTAMP NOT NULL,
+  capacity INT DEFAULT 8,
+  is_public BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT NOW()
+);

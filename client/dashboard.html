@@ -309,9 +309,10 @@
     <!-- 4 CARDS -->
     <div class="unique-grid">
       <div class="card">
-        <h3>Today's Pick</h3>
-        <p>No recommendations yet.</p>
-        <button onclick="location.href='room.html'">Watch Now</button>
+        <h3>Fresh Drops 🍿</h3>
+        <div id="fresh-drops-container">
+          <p style="color:#666;">Loading latest hits...</p>
+        </div>
       </div>
 
       <div class="card">
@@ -322,13 +323,18 @@
       </div>
 
       <div class="card">
-        <h3>Movie Clock</h3>
-        <p>0h 0m synced</p>
+        <h3>Next Watch Planned</h3>
+        <div id="next-watch-container">
+          <p style="color:#666;">No upcoming scheduled rooms.</p>
+          <button onclick="openScheduleModal()"
+            style="margin-top:10px; padding:8px 16px; font-size:0.85rem; height:auto; width:auto; min-width:0;">Schedule
+            Room</button>
+        </div>
       </div>
 
       <div class="card">
         <h3>Reaction Leader</h3>
-        <p>Start watching to react!</p>
+        <p id="reaction-leader">Start watching to react!</p>
       </div>
     </div>
 
@@ -398,6 +404,62 @@
       <button onclick="copyCode()">Copy Code</button>
       <button onclick="copyLink()">Copy Link</button>
       <button onclick="goToRoom()">Go to Room</button>
+    </div>
+  </div>
+
+  <!-- SCHEDULE ROOM MODAL -->
+  <div id="schedule-modal" class="modal">
+    <div class="modal-content">
+      <h2>Schedule a Room</h2>
+
+      <div style="margin-bottom: 15px;">
+        <p><strong>Room Name:</strong></p>
+        <input type="text" id="schedule-room-name" placeholder="e.g. Movie Night with Friends"
+          style="width:100%; margin-top:5px;">
+      </div>
+
+      <div style="margin-bottom: 15px;">
+        <p><strong>Date & Time:</strong></p>
+        <input type="datetime-local" id="schedule-datetime"
+          style="width:100%; margin-top:5px; padding:10px; background:#0F0F0F; border:1px solid var(--border); border-radius:8px; color:white;">
+      </div>
+
+      <div style="margin-bottom: 15px;">
+        <p><strong>Room Capacity:</strong></p>
+        <div class="capacity-options">
+          <label class="capacity-card">
+            <input type="radio" name="schedule-capacity" value="2" checked>
+            <span>2</span>
+          </label>
+          <label class="capacity-card">
+            <input type="radio" name="schedule-capacity" value="4">
+            <span>4</span>
+          </label>
+          <label class="capacity-card">
+            <input type="radio" name="schedule-capacity" value="8">
+            <span>8</span>
+          </label>
+          <label class="capacity-card">
+            <input type="radio" name="schedule-capacity" value="16">
+            <span>16</span>
+          </label>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <label style="display:flex; align-items:center; gap:8px;">
+          <input type="checkbox" id="schedule-is-public">
+          <span>Make it a public room</span>
+        </label>
+      </div>
+
+      <div style="display:flex; gap:10px;">
+        <button onclick="saveScheduledRoom()" style="flex:1;">Schedule</button>
+        <button onclick="closeScheduleModal()"
+          style="flex:1; background:transparent; border:1px solid var(--border); color:var(--text-main);">Cancel</button>
+      </div>
+
+      <p id="schedule-error" style="color:#ff3366; margin-top:10px; font-size:0.9rem;"></p>
     </div>
   </div>
 
@@ -491,6 +553,248 @@
     }
 
     document.addEventListener('DOMContentLoaded', fetchFriends);
+
+    // Fetch User Stats
+    async function fetchStats() {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      try {
+        const res = await fetch('/api/auth/stats', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const stats = await res.json();
+
+          // Update Reaction Leader
+          if (stats.topReactions && stats.topReactions.length > 0) {
+            const top = stats.topReactions[0];
+            document.getElementById('reaction-leader').innerHTML =
+              `<span style="font-size: 2.5rem; display: block; margin-bottom: 5px;">${top.emoji}</span> Used ${top.count} times`;
+          }
+        }
+
+        // Fresh Drops
+        const dropRes = await fetch('/api/fresh-drops');
+        if (dropRes.ok) {
+          const drops = await dropRes.json();
+          const container = document.getElementById('fresh-drops-container');
+          const drop = drops[Math.floor(Math.random() * drops.length)];
+          if (container) {
+            container.innerHTML = `
+              <div style="background:rgba(229,9,20,0.1); padding:15px; border-radius:10px; border-left:4px solid var(--accent); text-align:left;">
+                <span style="font-size:0.7rem; text-transform:uppercase; color:var(--accent); font-weight:800;">Recently Released</span>
+                <h4 style="font-size:1.2rem; margin:5px 0;">${drop.title}</h4>
+                <p style="font-size:0.8rem; color:#888;">${drop.type} • ${drop.stars}</p>
+                <span style="display:inline-block; margin-top:10px; background:#222; padding:3px 8px; border-radius:4px; font-size:0.7rem; color:#ccc;">${drop.platform}</span>
+              </div>
+            `;
+          }
+        }
+
+        // Fetch Scheduled Rooms
+        fetchScheduledRooms();
+      } catch (err) {
+        console.error("Failed to fetch dashboard stats:", err);
+      }
+    }
+
+    // Fetch and display scheduled rooms
+    async function fetchScheduledRooms() {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const container = document.getElementById('next-watch-container');
+      if (!container) return;
+
+      try {
+        const res = await fetch('/api/scheduled-rooms', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (res.ok) {
+          const scheduledRooms = await res.json();
+
+          if (scheduledRooms.length === 0) {
+            container.innerHTML = `
+              <p style="color:#666;">No upcoming scheduled rooms.</p>
+              <button onclick="openScheduleModal()" style="margin-top:10px; padding:8px 16px; font-size:0.85rem; height:auto; width:auto; min-width:0;">Schedule Room</button>
+            `;
+            return;
+          }
+
+          // Show the next upcoming room
+          const nextRoom = scheduledRooms[0];
+          const scheduledDate = new Date(nextRoom.scheduled_at);
+          const now = new Date();
+          const timeUntil = scheduledDate - now;
+          const hoursUntil = Math.floor(timeUntil / (1000 * 60 * 60));
+          const minutesUntil = Math.floor((timeUntil % (1000 * 60 * 60)) / (1000 * 60));
+          const daysUntil = Math.floor(hoursUntil / 24);
+
+          let timeText = '';
+          if (daysUntil > 0) {
+            timeText = `${daysUntil} day${daysUntil > 1 ? 's' : ''} away`;
+          } else if (hoursUntil > 0) {
+            timeText = `${hoursUntil} hour${hoursUntil > 1 ? 's' : ''} away`;
+          } else {
+            timeText = `${minutesUntil} minute${minutesUntil > 1 ? 's' : ''} away`;
+          }
+
+          const dateStr = scheduledDate.toLocaleDateString('en-IN', {
+            timeZone: 'Asia/Kolkata',
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+          });
+
+          const timeStr = scheduledDate.toLocaleTimeString('en-IN', {
+            timeZone: 'Asia/Kolkata',
+            hour: 'numeric',
+            minute: '2-digit'
+          });
+          container.innerHTML = `
+            <div style="background:rgba(229,9,20,0.1); padding:15px; border-radius:10px; border-left:4px solid var(--accent); text-align:left;">
+              <h4 style="font-size:1.1rem; margin:0 0 8px 0; color:white;">${nextRoom.room_name}</h4>
+              <p style="font-size:0.85rem; color:#888; margin:4px 0;">
+                📅 ${dateStr} at ${timeStr}
+              </p>
+              <p style="font-size:0.85rem; color:var(--accent); margin:4px 0; font-weight:600;">
+                ⏰ ${timeText}
+              </p>
+              <div style="margin-top:12px; display:flex; gap:8px; align-items:center;">
+                <span style="background:#222; padding:3px 8px; border-radius:4px; font-size:0.7rem; color:#ccc;">${nextRoom.capacity} slots</span>
+                ${nextRoom.is_public ? '<span style="background:#222; padding:3px 8px; border-radius:4px; font-size:0.7rem; color:#ccc;">Public</span>' : ''}
+                <button onclick="deleteScheduledRoom(${nextRoom.id})" style="margin-left:auto; padding:4px 10px; font-size:0.75rem; height:auto; width:auto; min-width:0; background:transparent; border:1px solid #444; color:#aaa;">Cancel</button>
+              </div>
+              
+              <div style="margin-top:15px; display:flex; gap:10px;">
+                ${nextRoom.is_public ? `
+                  <button onclick="joinScheduledRoom('${nextRoom.room_code}')" style="flex:1; padding:8px; font-size:0.85rem; background:var(--accent); color:white; border:none; border-radius:6px; cursor:pointer; font-weight:700;">Join Room</button>
+                ` : `
+                  <button onclick="copyScheduledCode('${nextRoom.room_code}')" style="flex:1; padding:8px; font-size:0.85rem; background:#333; color:white; border:none; border-radius:6px; cursor:pointer;">Copy Code</button>
+                  <button onclick="joinScheduledRoom('${nextRoom.room_code}')" style="flex:1; padding:8px; font-size:0.85rem; background:var(--accent); color:white; border:none; border-radius:6px; cursor:pointer; font-weight:700;">Go to Room</button>
+                `}
+              </div>
+            </div>
+            ${scheduledRooms.length > 1 ? `<p style="margin-top:10px; font-size:0.8rem; color:#666;">+${scheduledRooms.length - 1} more scheduled</p>` : ''}
+            <button onclick="openScheduleModal()" style="margin-top:10px; padding:8px 16px; font-size:0.85rem; height:auto; width:auto; min-width:0;">Schedule Another</button>
+          `;
+        }
+      } catch (err) {
+        console.error("Failed to fetch scheduled rooms:", err);
+        container.innerHTML = '<p style="color:#e50914; font-size:0.9rem;">Failed to load scheduled rooms.</p>';
+      }
+    }
+
+    // Schedule Room Functions
+    function openScheduleModal() {
+      document.getElementById('schedule-modal').style.display = 'flex';
+      document.getElementById('schedule-error').textContent = '';
+
+      // Set minimum datetime to now
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      document.getElementById('schedule-datetime').min = now.toISOString().slice(0, 16);
+    }
+
+    function closeScheduleModal() {
+      document.getElementById('schedule-modal').style.display = 'none';
+      document.getElementById('schedule-room-name').value = '';
+      document.getElementById('schedule-datetime').value = '';
+      document.getElementById('schedule-error').textContent = '';
+    }
+
+    async function saveScheduledRoom() {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const roomName = document.getElementById('schedule-room-name').value.trim();
+      const datetimeInput = document.getElementById('schedule-datetime').value;
+      const capacity = document.querySelector('input[name="schedule-capacity"]:checked').value;
+      const isPublic = document.getElementById('schedule-is-public').checked;
+      const errorEl = document.getElementById('schedule-error');
+
+      if (!roomName) {
+        errorEl.textContent = 'Please enter a room name';
+        return;
+      }
+
+      if (!datetimeInput) {
+        errorEl.textContent = 'Please select date & time';
+        return;
+      }
+
+      // 🔹 Standard ISO conversion (Browser handles local timezone)
+      const scheduledDate = new Date(datetimeInput);
+
+      try {
+        const res = await fetch('/api/scheduled-rooms', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            roomName,
+            scheduledAt: scheduledDate.toISOString(),
+            capacity: parseInt(capacity),
+            isPublic
+          })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          errorEl.textContent = data.error || 'Failed to schedule room';
+          return;
+        }
+
+        closeScheduleModal();
+        fetchScheduledRooms();
+
+      } catch (err) {
+        console.error(err);
+        errorEl.textContent = 'Network error';
+      }
+    }
+
+    async function deleteScheduledRoom(roomId) {
+      if (!confirm('Are you sure you want to cancel this scheduled room?')) return;
+
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      try {
+        const res = await fetch(`/api/scheduled-rooms/${roomId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (res.ok) {
+          fetchScheduledRooms(); // Refresh the display
+        } else {
+          alert('Failed to cancel scheduled room');
+        }
+      } catch (err) {
+        console.error("Delete scheduled room error:", err);
+        alert('Network error. Please try again.');
+      }
+    }
+
+    function copyScheduledCode(code) {
+      if (!code) return;
+      navigator.clipboard.writeText(code);
+      alert('Room code copied: ' + code);
+    }
+
+    function joinScheduledRoom(code) {
+      if (!code) return;
+      sessionStorage.setItem('isHost', 'true'); // Assume host for their scheduled room
+      location.href = `room.html?code=${code}`;
+    }
+
+    document.addEventListener('DOMContentLoaded', fetchStats);
 
     // Initialize Socket for Create Room events
     const socket = io();
@@ -647,7 +951,13 @@
     }
 
     window.onclick = e => {
-      if (e.target.classList.contains('modal')) e.target.style.display = 'none';
+      if (e.target.classList.contains('modal')) {
+        e.target.style.display = 'none';
+        // Clear schedule modal fields when closing
+        if (e.target.id === 'schedule-modal') {
+          closeScheduleModal();
+        }
+      }
     };
   </script>
 

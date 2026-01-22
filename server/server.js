@@ -470,6 +470,11 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Handle Fetching Public Rooms
+  socket.on('getPublicRooms', () => {
+    socket.emit('publicRoomsList', Array.from(publicRooms.values()));
+  });
+
   // Handle Room Creation (Public/Private)
   socket.on('createRoom', async ({ roomCode, type, name, capacity, userName, token, email }, callback) => {
     console.log(`[SYNC] createRoom attempt: Code=${roomCode} Type=${type} User=${userName}`);
@@ -710,8 +715,19 @@ io.on('connection', (socket) => {
   });
 
   // Reaction System
-  socket.on('sendReaction', ({ roomCode, emoji }) => {
-    io.to(roomCode).emit('receiveReaction', emoji);
+  socket.on('reaction', async ({ roomCode, emoji }) => {
+    io.to(roomCode).emit('reaction', { emoji });
+
+    // Record reaction in DB
+    const userId = socket.data.userId;
+    if (userId) {
+      try {
+        await pool.query(
+          'INSERT INTO reactions (room_code, user_id, emoji) VALUES ($1, $2, $3)',
+          [roomCode, userId, emoji]
+        );
+      } catch (e) { console.error("[SYNC] Failed to record reaction:", e.message); }
+    }
   });
 
   socket.on('disconnect', () => {
@@ -828,18 +844,163 @@ app.get('/api/auth/stats', authenticateToken, async (req, res) => {
     const userId = parseInt(req.user.id);
     if (isNaN(userId)) return res.status(400).json({ error: "Invalid User ID in token" });
 
-    // Explicitly cast host_id just in case of any weird DB types
     const roomCountRes = await pool.query('SELECT COUNT(*) FROM rooms WHERE host_id::int = $1', [userId]);
     const videoCountRes = await pool.query('SELECT COUNT(*) FROM synced_videos WHERE user_id = $1', [userId]);
+
+    // Get Top 3 Reactions
+    const topReactionsRes = await pool.query(`
+      SELECT emoji, COUNT(*) as count 
+      FROM reactions 
+      WHERE user_id = $1 
+      GROUP BY emoji 
+      ORDER BY count DESC 
+      LIMIT 3
+    `, [userId]);
 
     res.json({
       roomsCreated: parseInt(roomCountRes.rows[0].count) || 0,
       videosSynced: parseInt(videoCountRes.rows[0].count) || 0,
+      topReactions: topReactionsRes.rows.map(r => ({
+        emoji: r.emoji,
+        count: parseInt(r.count)
+      })),
       watchHours: 0,
     });
   } catch (err) {
     console.error("[SYNC] Get Stats Error:", err);
     res.status(500).json({ error: "Failed to fetch user stats" });
+  }
+});
+
+// DASHBOARD DYNAMIC CONTENT
+app.get('/api/fresh-drops', (req, res) => {
+  const drops = [
+    { title: "The Rip", platform: "Netflix", type: "Film", stars: "Affleck, Damon" },
+    { title: "A Knight of the Seven Kingdoms", platform: "HBO Max", type: "Series", stars: "GoT Prequel" },
+    { title: "Bridgerton: S4", platform: "Netflix", type: "Series", stars: "Benedict" },
+    { title: "The Wrecking Crew", platform: "Prime", type: "Film", stars: "Momoa, Bautista" }
+  ];
+  res.json(drops);
+});
+
+app.get('/api/global-stats', async (req, res) => {
+  try {
+    const syncRes = await pool.query('SELECT COUNT(*) FROM synced_videos');
+    const dbCount = parseInt(syncRes.rows[0].count) || 0;
+    const totalGlobalSyncs = dbCount + 1200;
+
+    res.json({
+      publicRooms: typeof publicRooms !== 'undefined' ? publicRooms.size : 0,
+      totalSyncs: totalGlobalSyncs,
+      activeUsers: typeof userStatuses !== 'undefined' ? userStatuses.size : 0
+    });
+  } catch (err) {
+    console.error("[SYNC] Global Stats Error:", err);
+    res.status(500).json({ error: "Failed to fetch global stats" });
+  }
+});
+
+// DASHBOARD DYNAMIC CONTENT
+app.get('/api/fresh-drops', (req, res) => {
+  const drops = [
+    { title: "The Rip", platform: "Netflix", type: "Film", stars: "Affleck, Damon" },
+    { title: "A Knight of the Seven Kingdoms", platform: "HBO Max", type: "Series", stars: "GoT Prequel" },
+    { title: "Bridgerton: S4", platform: "Netflix", type: "Series", stars: "Benedict" },
+    { title: "The Wrecking Crew", platform: "Prime", type: "Film", stars: "Momoa, Bautista" }
+  ];
+  res.json(drops);
+});
+
+// SCHEDULED ROOMS ENDPOINTS
+// Create a scheduled room
+app.post('/api/scheduled-rooms', authenticateToken, async (req, res) => {
+  const { roomName, scheduledAt, capacity, isPublic } = req.body;
+  const userId = req.user.id;
+
+  if (!roomName || !scheduledAt) {
+    return res.status(400).json({ error: "Room name and scheduled time are required" });
+  }
+
+  try {
+    const scheduledDate = new Date(scheduledAt);
+    if (scheduledDate < new Date()) {
+      return res.status(400).json({ error: "Scheduled time must be in the future" });
+    }
+
+    const room_code = 'FRM' + Math.random().toString(36).substr(2, 3).toUpperCase();
+
+    const result = await pool.query(
+      `INSERT INTO scheduled_rooms (user_id, room_name, scheduled_at, capacity, is_public, room_code)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [userId, roomName, scheduledDate, capacity || 8, isPublic || false, room_code]
+    );
+
+    res.json({ success: true, scheduledRoom: result.rows[0] });
+  } catch (err) {
+    console.error("Create Scheduled Room Error:", err.message);
+    console.error("Full error:", err);
+    res.status(500).json({ error: "Failed to create scheduled room", details: err.message });
+  }
+});
+
+// Get user's scheduled rooms (upcoming)
+app.get('/api/scheduled-rooms', authenticateToken, async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+    const result = await pool.query(
+      `SELECT id, room_name, scheduled_at, capacity, is_public, room_code FROM scheduled_rooms 
+       WHERE user_id = $1 AND scheduled_at > NOW() 
+       ORDER BY scheduled_at ASC 
+       LIMIT 5`,
+      [userId]
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Get Scheduled Rooms Error:", err.message);
+    console.error("Full error:", err);
+    res.status(500).json({ error: "Failed to fetch scheduled rooms", details: err.message });
+  }
+});
+
+// Delete a scheduled room
+app.delete('/api/scheduled-rooms/:id', authenticateToken, async (req, res) => {
+  const userId = req.user.id;
+  const scheduledRoomId = req.params.id;
+
+  try {
+    const result = await pool.query(
+      `DELETE FROM scheduled_rooms WHERE id = $1 AND user_id = $2`,
+      [scheduledRoomId, userId]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: "Scheduled room not found" });
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Delete Scheduled Room Error:", err);
+    res.status(500).json({ error: "Failed to delete scheduled room" });
+  }
+});
+
+// Get all public scheduled rooms (Starting Soon)
+app.get('/api/public/scheduled-rooms', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT sr.*, u.name as host_name, u.avatar as host_avatar
+       FROM scheduled_rooms sr
+       JOIN users u ON sr.user_id = u.id
+       WHERE sr.is_public = TRUE AND sr.scheduled_at > NOW()
+       ORDER BY sr.scheduled_at ASC
+       LIMIT 20`
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Get Public Scheduled Rooms Error:", err);
+    res.status(500).json({ error: "Failed to fetch public scheduled rooms" });
   }
 });
 

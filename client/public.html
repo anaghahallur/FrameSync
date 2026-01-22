@@ -446,37 +446,83 @@
 
     // --- PUBLIC PAGE LOGIC ---
     let rooms = [];
+    let scheduledRooms = [];
+    let currentTab = 'trending';
 
     socket.on('publicRoomsList', (data) => {
       rooms = data;
-      renderRooms();
+      if (currentTab !== 'soon') renderRooms();
     });
 
-    function renderRooms(filter = 'trending') {
-      const genre = document.getElementById('genre').value;
-      const lang = document.getElementById('lang').value;
+    function renderRooms() {
+      const container = document.getElementById('room-container');
+      if (!container) return;
 
-      // For now, ignore genre/lang filters as we don't set them yet
-      // Just show all active public rooms
-      const filtered = rooms;
+      if (currentTab === 'soon') {
+        if (scheduledRooms.length === 0) {
+          container.innerHTML = '<p style="text-align:center;color:#888;grid-column:1/-1">No public rooms scheduled soon. Why not schedule one?</p>';
+          return;
+        }
 
-      document.getElementById('room-container').innerHTML = filtered.map(r => `
-    <div class="room-card">
-      <h4>${r.name} ${r.live ? '<span class="live-badge">LIVE</span>' : ''}</h4>
-      <p>Host: ${r.host}</p>
-      <p>Users: ${r.users}/${r.capacity}
-        <span style="color:#00ff41">${'●'.repeat(r.users)}</span>
-        <span style="color:#444">${'○'.repeat(Math.max(0, r.capacity - r.users))}</span>
-      </p>
-      <button class="card-join-btn" onclick="joinPublicRoom('${r.roomCode}')">Join</button>
-    </div>
-  `).join('') || '<p style="text-align:center;color:#888;grid-column:1/-1">No active public rooms found. Be the first to create one!</p>';
+        container.innerHTML = scheduledRooms.map(r => {
+          const scheduledDate = new Date(r.scheduled_at);
+          const timeStr = scheduledDate.toLocaleString('en-IN', {
+            day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+          });
+
+          return `
+            <div class="room-card" style="border-left: 4px solid #f39c12;">
+              <h4 style="color:#f39c12;">${r.room_name} <span class="live-badge" style="background:#f39c12;">SOON</span></h4>
+              <p>Host: ${r.host_name}</p>
+              <p>Starts: ${timeStr}</p>
+              <p>Capacity: ${r.capacity} Seats Planned</p>
+              <button class="card-join-btn" onclick="joinPublicRoom('${r.room_code}')" style="background:#f39c12;">Join Room</button>
+            </div>
+          `;
+        }).join('');
+      } else {
+        const filtered = rooms;
+        if (filtered.length === 0) {
+          container.innerHTML = '<p style="text-align:center;color:#888;grid-column:1/-1">No active public rooms found. Be the first to create one!</p>';
+          return;
+        }
+
+        container.innerHTML = filtered.map(r => `
+          <div class="room-card">
+            <h4>${r.title || r.name} ${(r.status === 'live' || r.live) ? '<span class="live-badge">LIVE</span>' : ''}</h4>
+            <p>Host: ${r.host}</p>
+            <p>Users: ${r.users}/${r.max || r.capacity}
+              <span style="color:#00ff41">${'●'.repeat(r.users)}</span>
+              <span style="color:#444">${'○'.repeat(Math.max(0, (r.max || r.capacity) - r.users))}</span>
+            </p>
+            <button class="card-join-btn" onclick="joinPublicRoom('${r.roomCode}')">Join</button>
+          </div>
+        `).join('');
+      }
     }
 
-    function showTab(tab) {
+    async function showTab(tab) {
+      currentTab = tab;
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      document.querySelector(`[onclick="showTab('${tab}')"]`).classList.add('active');
-      renderRooms(tab);
+      const activeBtn = document.querySelector(`[onclick="showTab('${tab}')"]`);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      if (tab === 'soon') {
+        try {
+          const res = await fetch('/api/public/scheduled-rooms');
+          if (res.ok) {
+            scheduledRooms = await res.json();
+          } else {
+            scheduledRooms = [];
+          }
+          renderRooms();
+        } catch (err) {
+          console.error("Failed to fetch scheduled rooms:", err);
+          document.getElementById('room-container').innerHTML = '<p style="text-align:center;color:#e50914;">Failed to load scheduled rooms.</p>';
+        }
+      } else {
+        renderRooms();
+      }
     }
 
     document.getElementById('genre').onchange = () => renderRooms();
