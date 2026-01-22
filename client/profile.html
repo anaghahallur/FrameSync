@@ -388,7 +388,7 @@
                 </div>
                 <div class="stat-box">
                     <h2 id="watch-hours">0</h2>
-                    <p>Hours<br>Watched</p>
+                    <p id="watch-label">Hours<br>Watched</p>
                 </div>
                 <div class="stat-box">
                     <h2 id="friends-added">0</h2>
@@ -631,7 +631,15 @@
                 if (res.ok) {
                     const stats = await res.json();
                     roomsEl.textContent = stats.roomsCreated || "0";
-                    document.getElementById("watch-hours").textContent = stats.watchHours || "0";
+                    // Render watch time (Hours vs Minutes)
+                    if (stats.watchSeconds < 3600) {
+                        const mins = Math.floor(stats.watchSeconds / 60);
+                        document.getElementById("watch-hours").textContent = mins;
+                        document.getElementById("watch-label").innerHTML = "Minutes<br>Watched";
+                    } else {
+                        document.getElementById("watch-hours").textContent = stats.watchHours || "0";
+                        document.getElementById("watch-label").innerHTML = "Hours<br>Watched";
+                    }
                     document.getElementById("videos-synced").textContent = stats.videosSynced || "0";
                     localStorage.setItem("roomsCreated", stats.roomsCreated || "0");
 

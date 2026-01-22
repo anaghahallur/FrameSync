@@ -913,6 +913,7 @@ app.get('/api/auth/stats', authenticateToken, async (req, res) => {
         count: parseInt(r.count)
       })),
       watchHours: parseFloat(watchHours),
+      watchSeconds: watchSeconds
     });
   } catch (err) {
     console.error("[SYNC] Get Stats Error:", err);
@@ -1089,6 +1090,22 @@ app.delete('/api/auth/delete', authenticateToken, async (req, res) => {
     client.release();
   }
 });
+
+// --- BACKGROUND TASKS ---
+// Cleanup expired scheduled rooms every 10 minutes
+setInterval(async () => {
+  try {
+    const result = await pool.query(`
+      DELETE FROM scheduled_rooms 
+      WHERE scheduled_at < NOW() - INTERVAL '30 minutes'
+    `);
+    if (result.rowCount > 0) {
+      console.log(`[CLEANUP] Deleted ${result.rowCount} expired scheduled rooms.`);
+    }
+  } catch (err) {
+    console.error("[CLEANUP] Error during scheduled rooms cleanup:", err.message);
+  }
+}, 10 * 60 * 1000); // 10 minutes
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
