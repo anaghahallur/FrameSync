@@ -236,6 +236,68 @@
       border-bottom: 1px solid var(--border);
       padding-bottom: 10px;
     }
+
+    /* Room Responsiveness */
+    @media (max-width: 768px) {
+      body {
+        padding: 10px;
+        overflow: auto;
+        /* Allow scrolling if keyboard pops up or content overflows */
+      }
+
+      .room-container {
+        height: auto;
+        min-height: calc(100vh - 20px);
+        gap: 10px;
+      }
+
+      .video-section {
+        padding: 10px;
+        border-radius: 12px;
+        flex: none;
+        /* Let its content decide height, or set specific */
+        height: auto;
+        padding-bottom: 70px;
+        /* Space for toolbar */
+      }
+
+      #player-container {
+        border-radius: 12px;
+      }
+
+      .host-controls {
+        width: 95%;
+        bottom: 80px;
+        padding: 10px;
+      }
+
+      .control-tab {
+        flex-direction: column;
+        margin-left: 0 !important;
+        gap: 10px !important;
+      }
+
+      .floating-panel {
+        width: 100%;
+        height: calc(100% - 60px);
+        box-shadow: none;
+      }
+
+      .bottom-toolbar {
+        gap: 15px;
+        padding: 0 15px;
+      }
+
+      .leave-btn {
+        padding: 8px 16px;
+        font-size: 0.8rem;
+      }
+
+      .video-bubble {
+        width: 100px;
+        height: 100px;
+      }
+    }
   </style>
 
   <!-- MAIN CONTAINER (Refactored) -->

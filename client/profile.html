@@ -40,7 +40,7 @@
             min-height: 100vh;
             display: flex;
             justify-content: center;
-            padding: 80px 20px;
+            padding: 40px 15px;
         }
 
         /* Container */
@@ -52,19 +52,18 @@
 
         /* Back Button */
         .back-dashboard-btn {
-            position: absolute;
-            top: -70px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 16px 40px;
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 12px 30px;
             border-radius: 50px;
             font-weight: 800;
-            font-size: 1.2rem;
+            font-size: 1rem;
             text-decoration: none;
             color: var(--accent);
             border: 1px solid rgba(229, 9, 20, 0.6);
             background: radial-gradient(circle at top, rgba(229, 9, 20, 0.15), transparent 60%);
             transition: 0.25s ease;
+            position: relative;
             overflow: hidden;
         }
 
@@ -91,7 +90,7 @@
         /* Main Card */
         .contact-card {
             background: var(--bg-card);
-            padding: 60px 80px;
+            padding: 40px 5%;
             border-radius: 20px;
             border: 1px solid var(--border);
         }
@@ -103,10 +102,10 @@
             justify-content: center;
             gap: 30px;
             background: #1A1A1A;
-            padding: 35px 50px;
+            padding: 25px 30px;
             border-radius: 20px;
             border: 1px solid var(--border);
-            margin-bottom: 50px;
+            margin-bottom: 40px;
         }
 
         .avatar {
@@ -240,24 +239,77 @@
         }
 
         /* Mobile */
-        @media (max-width: 700px) {
-            .contact-card {
-                padding: 40px 30px;
-            }
-
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
             .user-info-box {
                 flex-direction: column;
                 text-align: center;
-                padding: 25px;
+                gap: 20px;
+                padding: 30px 20px;
+            }
+
+            .avatar {
+                width: 100px;
+                height: 100px;
+            }
+
+            .user-info-box h3 {
+                font-size: 1.8rem;
             }
 
             .stats-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 15px;
+            }
+
+            .stat-box {
+                padding: 15px;
+            }
+
+            .stat-box h2 {
+                font-size: 2.2rem;
+            }
+
+            .stat-box p {
+                font-size: 0.9rem;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+                width: 100%;
+                gap: 12px;
+            }
+
+            .action-btn,
+            .logout-btn {
+                width: 100%;
+                padding: 12px 24px;
+                font-size: 1rem;
             }
 
             .danger-zone {
                 flex-direction: column;
                 text-align: center;
+                padding: 20px;
+                gap: 15px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .user-info-box h3 {
+                font-size: 1.5rem;
+            }
+
+            .stat-box h2 {
+                font-size: 2rem;
+            }
+
+            .contact-card {
+                padding: 30px 15px;
             }
         }
 
@@ -313,7 +365,7 @@
 
 <body>
 
-    <div class="container">
+    <div class="container" style="text-align:center;">
         <!-- BACK TO DASHBOARD — BIG, CENTERED, IMPOSSIBLE TO MISS -->
         <a href="dashboard.html" class="back-dashboard-btn">Back to Dashboard</a>
 

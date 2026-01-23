@@ -207,6 +207,32 @@
     </div>
   </nav>
 
+  <style>
+    /* Public Page Responsiveness */
+    @media (max-width: 480px) {
+      .filters {
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .filters select {
+        width: 100%;
+      }
+
+      .tabs {
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .tab {
+        flex: 1;
+        text-align: center;
+        padding: 10px 12px;
+        font-size: 0.85rem;
+      }
+    }
+  </style>
+
   <div class="container">
     <h1>Public Rooms</h1>
 

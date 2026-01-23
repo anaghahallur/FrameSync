@@ -634,3 +634,114 @@ select:focus {
     box-shadow: 0 4px 12px rgba(229, 9, 20, 0.4);
     transform: translateY(-2px);
 }
+
+/* ===========================================
+   RESPONSIVENESS (Media Queries)
+=========================================== */
+
+/* Laptop / Small Desktop */
+@media (max-width: 1024px) {
+    .container {
+        padding: 1.5rem 4%;
+    }
+
+    .hero-title {
+        font-size: 2.8rem;
+    }
+}
+
+/* Tablet */
+@media (max-width: 768px) {
+    .navbar {
+        padding: 1rem 4%;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .nav-links {
+        order: 3;
+        width: 100%;
+        justify-content: space-around;
+        gap: 0.5rem;
+        background: rgba(0, 0, 0, 0.2);
+        padding: 8px;
+        border-radius: 12px;
+    }
+
+    .nav-links a {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.9rem;
+    }
+
+    .hero-title {
+        font-size: 2.22rem;
+    }
+
+    .hero-description {
+        font-size: 1rem;
+        padding: 0 10px;
+    }
+
+    .steps {
+        gap: 1.5rem;
+    }
+
+    .step {
+        min-width: 100%;
+        padding: 1.5rem;
+    }
+
+    .unique-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .modal-content {
+        width: 95%;
+        padding: 1.5rem;
+    }
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+    .logo {
+        font-size: 1.5rem;
+    }
+
+    .nav-actions {
+        gap: 0.5rem;
+    }
+
+    .avatar {
+        width: 36px;
+        height: 36px;
+    }
+
+    .hero-guide {
+        padding: 2.5rem 1.5rem;
+    }
+
+    .hero-title {
+        font-size: 1.8rem;
+    }
+
+    .tabs {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .tab {
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        flex: 1;
+        text-align: center;
+    }
+
+    .quick-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .quick-actions button {
+        width: 100%;
+    }
+}
