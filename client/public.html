@@ -251,24 +251,14 @@
       </div>
 
       <p><strong>Room Capacity:</strong></p>
-      <div class="capacity-options">
-        <label class="capacity-card">
-          <input type="radio" name="capacity" value="2" checked>
-          <span>2</span>
-        </label>
-        <label class="capacity-card">
-          <input type="radio" name="capacity" value="4">
-          <span>4</span>
-        </label>
-        <label class="capacity-card">
-          <input type="radio" name="capacity" value="8">
-          <span>8</span>
-        </label>
-        <label class="capacity-card">
-          <input type="radio" name="capacity" value="16">
-          <span>16</span>
-        </label>
-      </div>
+      <select id="capacity-select"
+        style="width:100%; margin-top:5px; padding:10px; background:#0F0F0F; border:1px solid var(--border); border-radius:8px; color:white; cursor:pointer;">
+        <script>
+          for (let i = 1; i <= 20; i++) {
+            document.write(`<option value="${i}" ${i === 8 ? 'selected' : ''}>${i} Users</option>`);
+          }
+        </script>
+      </select>
       <button onclick="createRoomWithCapacity()">Create</button>
     </div>
   </div>
@@ -381,7 +371,7 @@
 
     function createRoomWithCapacity() {
       currentCode = 'FRM' + Math.random().toString(36).substr(2, 3).toUpperCase();
-      const capacity = document.querySelector('input[name="capacity"]:checked').value;
+      const capacity = document.getElementById('capacity-select').value;
       const userName = localStorage.getItem('userName') || 'Host';
 
       sessionStorage.setItem('isHost', 'true'); // Use sessionStorage

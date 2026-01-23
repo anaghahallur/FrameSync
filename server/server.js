@@ -574,6 +574,7 @@ io.on('connection', (socket) => {
     socket.data.isHost = isHost;
     socket.data.userId = userId;
     socket.data.sessionStart = Date.now();
+    console.log(`[WATCH-TIME] Session started for User ID ${userId} in Room ${roomCode}`);
 
     // NOW Join the room (Ensures userId is ready for others to see)
     socket.join(roomCode);
@@ -649,9 +650,12 @@ io.on('connection', (socket) => {
     // Track watch time before leaving
     if (socket.data.userId && socket.data.sessionStart) {
       const durationSeconds = Math.floor((Date.now() - socket.data.sessionStart) / 1000);
+      console.log(`[WATCH-TIME] leaveRoom: Updating watch_time for User ID ${socket.data.userId} (+${durationSeconds}s)`);
       if (durationSeconds > 0) {
         try {
-          await pool.query('UPDATE users SET watch_time = watch_time + $1 WHERE id = $2', [durationSeconds, socket.data.userId]);
+          const uId = parseInt(socket.data.userId);
+          await pool.query('UPDATE users SET watch_time = watch_time + $1 WHERE id = $2', [durationSeconds, uId]);
+          console.log(`[WATCH-TIME] Success updating watch_time for User ID ${uId}`);
         } catch (e) { console.error("[STATS] Failed to update watch time:", e.message); }
       }
       delete socket.data.sessionStart;
@@ -763,7 +767,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('disconnect', () => {
+  socket.on('disconnect', async () => {
     const userId = socket.data.userId;
     if (userId) {
       userStatuses.set(userId.toString(), 'offline');
@@ -771,9 +775,12 @@ io.on('connection', (socket) => {
       // Track watch time on disconnect
       if (socket.data.sessionStart) {
         const durationSeconds = Math.floor((Date.now() - socket.data.sessionStart) / 1000);
+        console.log(`[WATCH-TIME] disconnect: Updating watch_time for User ID ${userId} (+${durationSeconds}s)`);
         if (durationSeconds > 0) {
           try {
-            pool.query('UPDATE users SET watch_time = watch_time + $1 WHERE id = $2', [durationSeconds, userId]);
+            const uId = parseInt(userId);
+            await pool.query('UPDATE users SET watch_time = watch_time + $1 WHERE id = $2', [durationSeconds, uId]);
+            console.log(`[WATCH-TIME] Success updating watch_time for User ID ${uId} (disconnect)`);
           } catch (e) { console.error("[STATS] Failed to update watch time on disconnect:", e.message); }
         }
         delete socket.data.sessionStart;
@@ -903,7 +910,7 @@ app.get('/api/auth/stats', authenticateToken, async (req, res) => {
     `, [userId]);
 
     const watchSeconds = watchTimeRes.rows[0]?.watch_time || 0;
-    const watchHours = (watchSeconds / 3600).toFixed(1);
+    const watchMinutes = Math.floor(watchSeconds / 60);
 
     res.json({
       roomsCreated: parseInt(roomCountRes.rows[0].count) || 0,
@@ -912,7 +919,7 @@ app.get('/api/auth/stats', authenticateToken, async (req, res) => {
         emoji: r.emoji,
         count: parseInt(r.count)
       })),
-      watchHours: parseFloat(watchHours),
+      watchMinutes: watchMinutes,
       watchSeconds: watchSeconds
     });
   } catch (err) {
