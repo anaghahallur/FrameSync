@@ -323,17 +323,23 @@
     });
 
     window.onload = () => {
-      google.accounts.id.initialize({
-        client_id: "459591232868-cctp2i8f5bmpo3gi0um028esg56ifqrr.apps.googleusercontent.com",
-        callback: handleCredentialResponse
-      });
-      google.accounts.id.renderButton(document.getElementById("google_login_button"), {
-        theme: "outline",
-        size: "large",
-        text: "signin_with",
-        shape: "pill"
-      });
+      function initGoogle() {
+        if (typeof google !== 'undefined' && google.accounts) {
+          google.accounts.id.initialize({
+            client_id: "459591232868-cctp2i8f5bmpo3gi0um028esg56ifqrr.apps.googleusercontent.com",
+            callback: handleCredentialResponse
+          });
+          google.accounts.id.renderButton(document.getElementById("google_login_button"), {
+            theme: "outline", size: "large", text: "signin_with", shape: "pill"
+          });
+          console.log("✅ Google Sign-in initialized");
+        } else {
+          console.warn("⚠️ Google script not ready, retrying...");
+          setTimeout(initGoogle, 500);
+        }
+      }
 
+      initGoogle();
       if (localStorage.getItem("isLoggedIn") === "true") location.href = "dashboard.html";
     };
   </script>
