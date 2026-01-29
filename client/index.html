@@ -280,10 +280,11 @@
     </div>
   </div>
 
+  <script src="config.js"></script>
   <script>
     async function handleCredentialResponse(response) {
       try {
-        const res = await fetch('/api/auth/google', {
+        const res = await fetch(CONFIG.getApiUrl('/api/auth/google'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ credential: response.credential })

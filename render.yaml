@@ -19,4 +19,10 @@ services:
         sync: false
       - key: NODE_ENV
         value: production
+      - key: SERVER_URL
+        sync: false
+      - key: CLIENT_URL
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
     healthCheckPath: /

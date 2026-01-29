@@ -27,7 +27,7 @@ function toggleHostControls() {
 }
 
 // --- MAIN ROOM LOGIC ---
-const socket = io();
+const socket = io(window.CONFIG ? CONFIG.SOCKET_URL : undefined);
 const roomCode = new URLSearchParams(window.location.search).get('code');
 const userName = localStorage.getItem('userName') || 'Guest';
 
