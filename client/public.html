@@ -177,6 +177,7 @@
       }
     }
   </style>
+  <script src="config.js"></script>
 </head>
 
 <body>
@@ -316,7 +317,7 @@
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
-    const socket = io();
+    const socket = io(CONFIG.SOCKET_URL);
 
     // Load avatar
     const savedAvatar = localStorage.getItem('userAvatar') || 'https://via.placeholder.com/40/111/fff?text=A';
@@ -525,7 +526,7 @@
 
       if (tab === 'soon') {
         try {
-          const res = await fetch('/api/public/scheduled-rooms');
+          const res = await fetch(CONFIG.getApiUrl('/api/public/scheduled-rooms'));
           if (res.ok) {
             scheduledRooms = await res.json();
           } else {

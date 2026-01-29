@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FrameSync – Dashboard</title>
   <link rel="stylesheet" href="style.css" />
+  <script src="config.js"></script>
 </head>
 
 <script>
@@ -215,7 +216,7 @@
         if (!token) return;
 
         try {
-          const res = await fetch('/api/notifications', { headers: { 'Authorization': 'Bearer ' + token } });
+          const res = await fetch(CONFIG.getApiUrl('/api/notifications'), { headers: { 'Authorization': 'Bearer ' + token } });
           const notifications = await res.json();
 
           if (notifications.length > 0) {
@@ -243,7 +244,7 @@
       window.respondFriend = async (id, action) => {
         const token = localStorage.getItem('token');
         try {
-          await fetch('/api/friends/respond', {
+          await fetch(CONFIG.getApiUrl('/api/friends/respond'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
             body: JSON.stringify({ requestId: id, action })
@@ -487,7 +488,7 @@
       }
 
       try {
-        const res = await fetch('/api/friends', {
+        const res = await fetch(CONFIG.getApiUrl('/api/friends'), {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -544,7 +545,7 @@
       if (!token) return;
 
       try {
-        const res = await fetch('/api/auth/stats', {
+        const res = await fetch(CONFIG.getApiUrl('/api/auth/stats'), {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {
@@ -559,7 +560,7 @@
         }
 
         // Fresh Drops
-        const dropRes = await fetch('/api/fresh-drops');
+        const dropRes = await fetch(CONFIG.getApiUrl('/api/fresh-drops'));
         if (dropRes.ok) {
           const drops = await dropRes.json();
           const container = document.getElementById('fresh-drops-container');
@@ -592,7 +593,7 @@
       if (!container) return;
 
       try {
-        const res = await fetch('/api/scheduled-rooms', {
+        const res = await fetch(CONFIG.getApiUrl('/api/scheduled-rooms'), {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -713,7 +714,7 @@
       const scheduledDate = new Date(datetimeInput);
 
       try {
-        const res = await fetch('/api/scheduled-rooms', {
+        const res = await fetch(CONFIG.getApiUrl('/api/scheduled-rooms'), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -750,7 +751,7 @@
       if (!token) return;
 
       try {
-        const res = await fetch(`/api/scheduled-rooms/${roomId}`, {
+        const res = await fetch(CONFIG.getApiUrl(`/api/scheduled-rooms/${roomId}`), {
           method: 'DELETE',
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -781,7 +782,7 @@
     document.addEventListener('DOMContentLoaded', fetchStats);
 
     // Initialize Socket for Create Room events
-    const socket = io();
+    const socket = io(CONFIG.SOCKET_URL);
 
     // Sync Initial Status
     const initialStatus = localStorage.getItem('userStatus') || 'available';

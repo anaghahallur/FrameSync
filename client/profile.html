@@ -361,6 +361,7 @@
             transform: translateY(-2px);
         }
     </style>
+    <script src="config.js"></script>
 </head>
 
 <body>
@@ -589,7 +590,7 @@
             const token = localStorage.getItem('token');
 
             try {
-                const res = await fetch('/api/update-avatar', {
+                const res = await fetch(CONFIG.getApiUrl('/api/update-avatar'), {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -645,7 +646,7 @@
             }
 
             try {
-                const res = await fetch('/api/auth/update-name', {
+                const res = await fetch(CONFIG.getApiUrl('/api/auth/update-name'), {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -677,7 +678,7 @@
             if (!token) return;
 
             try {
-                const res = await fetch('/api/auth/stats', {
+                const res = await fetch(CONFIG.getApiUrl('/api/auth/stats'), {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (res.ok) {
@@ -723,7 +724,7 @@
             if (!token) return;
 
             try {
-                const res = await fetch('/api/friends', {
+                const res = await fetch(CONFIG.getApiUrl('/api/friends'), {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
@@ -809,7 +810,7 @@
             if (!token) return;
 
             try {
-                const res = await fetch('/api/auth/delete', {
+                const res = await fetch(CONFIG.getApiUrl('/api/auth/delete'), {
                     method: 'DELETE',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
