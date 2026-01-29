@@ -5,21 +5,21 @@
 [[redirects]]
   # Redirect all API calls to your Render backend
   from = "/api/*"
-  to = "https://your-app-name.onrender.com/api/:splat"
+  to = "https://framesync-sf6o.onrender.com/api/:splat"
   status = 200
   force = true
 
 [[redirects]]
   # Redirect Socket.IO connections to backend
   from = "/socket.io/*"
-  to = "https://your-app-name.onrender.com/socket.io/:splat"
+  to = "https://framesync-sf6o.onrender.com/socket.io/:splat"
   status = 200
   force = true
 
 [[redirects]]
   # Redirect uploads to backend
   from = "/uploads/*"
-  to = "https://your-app-name.onrender.com/uploads/:splat"
+  to = "https://framesync-sf6o.onrender.com/uploads/:splat"
   status = 200
   force = true
 
