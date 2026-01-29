@@ -1,0 +1,34 @@
+[build]
+  # No build command needed for static site
+  publish = "client"
+
+[[redirects]]
+  # Redirect all API calls to your Render backend
+  from = "/api/*"
+  to = "https://your-app-name.onrender.com/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  # Redirect Socket.IO connections to backend
+  from = "/socket.io/*"
+  to = "https://your-app-name.onrender.com/socket.io/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  # Redirect uploads to backend
+  from = "/uploads/*"
+  to = "https://your-app-name.onrender.com/uploads/:splat"
+  status = 200
+  force = true
+
+[[headers]]
+  # Apply these headers to all routes
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"
+    Cross-Origin-Opener-Policy = "same-origin-allow-popups"
+    Cross-Origin-Embedder-Policy = "require-corp"

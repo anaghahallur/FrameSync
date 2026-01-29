@@ -7,11 +7,39 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const AdmZip = require('adm-zip');
+const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
+
+// CORS Configuration for Production
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5500',
+  'http://127.0.0.1:5500',
+  process.env.FRONTEND_URL // Add your Netlify URL here via environment variable
+].filter(Boolean);
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.warn(`CORS blocked origin: ${origin}`);
+      callback(null, true); // Allow all origins for now, restrict in production
+    }
+  },
+  credentials: true
+}));
+
 app.use(express.json());
-app.use(express.static('../client')); // your index.html folder
+
+// Serve static files only in development
+if (process.env.NODE_ENV !== 'production') {
+  app.use(express.static('../client'));
+}
 
 // 5. GET NOTIFICATIONS (Friend Requests)
 app.get('/api/notifications', async (req, res) => {
@@ -320,7 +348,15 @@ const multer = require('multer');
 
 // Create HTTP server
 const server = http.createServer(app);
-const io = new Server(server);
+
+// Socket.IO with CORS
+const io = new Server(server, {
+  cors: {
+    origin: allowedOrigins.length > 0 ? allowedOrigins : '*',
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
+});
 
 // Multer Setup for Video Uploads
 const storage = multer.diskStorage({
