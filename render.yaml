@@ -21,8 +21,7 @@ services:
         value: production
       - key: SERVER_URL
         sync: false
-      - key: CLIENT_URL
-        sync: false
       - key: FRONTEND_URL
         sync: false
     healthCheckPath: /
+
