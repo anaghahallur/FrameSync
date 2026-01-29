@@ -1,5 +1,5 @@
 [build]
-  # No build command needed for static site
+  # Client is a static site - no build needed
   publish = "client"
 
 [[redirects]]
