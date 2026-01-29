@@ -107,8 +107,7 @@ app.post('/api/friends/respond', async (req, res) => {
 // Fix for Cross-Origin-Opener-Policy (Google Auth popup)
 app.use((req, res, next) => {
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
-  // Relaxed from require-corp to allow external scripts (Google, YouTube)
-  res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
+  // Removed Cross-Origin-Embedder-Policy as it blocks Google and YouTube scripts
   next();
 });
 

@@ -31,4 +31,4 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "no-referrer"
     Cross-Origin-Opener-Policy = "same-origin-allow-popups"
-    Cross-Origin-Embedder-Policy = "credentialless"
+    # Removed Cross-Origin-Embedder-Policy to allow Google/YouTube scripts
