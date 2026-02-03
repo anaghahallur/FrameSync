@@ -283,6 +283,7 @@
   <script src="config.js"></script>
   <script>
     async function handleCredentialResponse(response) {
+      console.log("🔑 Google Credential received, authenticating with backend...");
       try {
         const res = await fetch(CONFIG.getApiUrl('/api/auth/google'), {
           method: 'POST',
@@ -293,9 +294,10 @@
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Login failed");
 
+        console.log("✅ Backend authentication successful!");
         // Store Session Data
         localStorage.setItem("token", data.token);
-        localStorage.setItem("userId", data.id); // Store ID if available, or fetch later
+        localStorage.setItem("userId", data.id);
         localStorage.setItem("userName", data.name);
         localStorage.setItem("userEmail", data.email);
         localStorage.setItem("userAvatar", data.avatar);
@@ -303,23 +305,34 @@
 
         location.href = "dashboard.html";
       } catch (err) {
-        console.error(err);
+        console.error("❌ Login error:", err);
         alert("Login failed: " + err.message);
       }
     }
 
     function triggerGoogleFlow() {
-      const target = document.querySelector('#google_login_button div[role="button"]');
+      console.log("🖱️ 'Get Started' clicked, attempting to trigger Google Sign-in...");
+      // Try multiple selectors as Google library can be dynamic
+      const googleBtn = document.getElementById("google_login_button");
+      const target = googleBtn.querySelector('div[role="button"]') ||
+        googleBtn.querySelector('iframe') ||
+        googleBtn.firstChild;
+
       if (target) {
+        console.log("🎯 Google button found, triggering...");
         target.focus();
-        target.click();
+        if (target.click) target.click();
       } else {
-        alert('Google sign-in is still loading. Please try again in a moment.');
+        console.error("🚫 Google sign-in button not found in DOM");
+        alert('Google sign-in is still loading. Please try again in a moment or click the Google button directly below.');
       }
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('get-started-btn').addEventListener('click', triggerGoogleFlow);
+      const getStartedBtn = document.getElementById('get-started-btn');
+      if (getStartedBtn) {
+        getStartedBtn.addEventListener('click', triggerGoogleFlow);
+      }
     });
 
     window.onload = () => {
