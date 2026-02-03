@@ -66,6 +66,12 @@ const email = localStorage.getItem('userEmail');
 
 socket.emit('joinRoom', { roomCode, userName, isHost, token, email });
 
+// Update status to 'watching'
+const userId = localStorage.getItem('userId');
+if (userId) {
+    socket.emit('updateStatus', { userId, status: 'watching' });
+}
+
 // User List with Friend Options
 let myUserId = null;
 

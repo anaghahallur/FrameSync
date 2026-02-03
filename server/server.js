@@ -513,8 +513,13 @@ io.on('connection', (socket) => {
   // Handle status updates
   socket.on('updateStatus', ({ userId, status }) => {
     if (userId) {
-      userStatuses.set(userId.toString(), status);
-      console.log(`[DEBUG] Status updated for User ${userId}: ${status}`);
+      const uIdStr = userId.toString();
+      userStatuses.set(uIdStr, status);
+      socket.data.userId = uIdStr; // Ensure ID is on socket for disconnect
+      console.log(`[DEBUG] Status updated for User ${uIdStr}: ${status}`);
+
+      // Broadcast to everyone else
+      io.emit('statusUpdate', { userId: uIdStr, status });
     }
   });
 
@@ -830,7 +835,11 @@ io.on('connection', (socket) => {
   socket.on('disconnect', async () => {
     const userId = socket.data.userId;
     if (userId) {
-      userStatuses.set(userId.toString(), 'offline');
+      const uIdStr = userId.toString();
+      userStatuses.set(uIdStr, 'offline');
+
+      // Broadcast offline status
+      io.emit('statusUpdate', { userId: uIdStr, status: 'offline' });
 
       // Track watch time on disconnect
       if (socket.data.sessionStart) {
