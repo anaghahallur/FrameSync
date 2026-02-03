@@ -22,12 +22,11 @@ services:
     healthCheckPath: /
 
   # --- FRONTEND: Static Site ---
-  - type: static
+  - type: static_site
     name: framesync-frontend
-    runtime: static
     plan: free
     buildCommand: "" # No build step for static HTML/JS
-    publishPath: client # Serve files from the client folder
+    staticPublishPath: client # Serve files from the client folder
     envVars:
       - key: SERVER_URL
         value: https://framesync-backend.onrender.com # Update this after first backend deploy
