@@ -4,9 +4,8 @@ services:
     name: framesync-backend
     runtime: node
     plan: free
-    rootDir: server
-    buildCommand: npm install
-    startCommand: node server.js
+    buildCommand: npm install --prefix server
+    startCommand: node server/server.js
     envVars:
       - key: DATABASE_URL
         sync: false # Set this to your Neon DATABASE_URL in the dashboard
