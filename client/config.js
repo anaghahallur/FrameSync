@@ -11,7 +11,7 @@
 // ============================================
 // UPDATE THIS WHEN DEPLOYING
 // ============================================
-const SERVER_URL = 'https://framesync-sf6o.onrender.com';  // Change to '' for production
+const SERVER_URL = '';  // Change to '' for production
 // ============================================
 
 const CONFIG = {
