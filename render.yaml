@@ -22,8 +22,9 @@ services:
     healthCheckPath: /
 
   # --- FRONTEND: Static Site ---
-  - type: static_site
+  - type: web
     name: framesync-frontend
+    runtime: static
     plan: free
     buildCommand: "" # No build step for static HTML/JS
     staticPublishPath: client # Serve files from the client folder
