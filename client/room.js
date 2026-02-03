@@ -35,11 +35,15 @@ const userName = localStorage.getItem('userName') || 'Guest';
 const isHost = sessionStorage.getItem('isHost') === 'true';
 
 let ytPlayer;
-let currentMode = 'youtube'; // 'youtube' or 'file'
+let currentMode = 'youtube'; // 'youtube', 'file', or 'screen'
 let isSyncing = false; // Prevent feedback loops
-
 let selectedVideo = null;
 let selectedSubtitle = null;
+
+// Screen Share Globals
+let screenStream = null;
+let isSharingScreen = false;
+let remoteScreenStreamId = null;
 
 // Debounce function to prevent event spam
 function debounce(func, wait) {
@@ -387,13 +391,24 @@ function playFile(url, subtitleUrl) {
 
 function switchMode(mode) {
     currentMode = mode;
+    const yt = document.getElementById('video-player');
+    const h5 = document.getElementById('html5-player');
+    const sc = document.getElementById('screen-player');
+
+    // Hide all first
+    yt.style.display = 'none';
+    h5.style.display = 'none';
+    sc.style.display = 'none';
+
     if (mode === 'youtube') {
-        document.getElementById('video-player').style.display = 'block';
-        document.getElementById('html5-player').style.display = 'none';
-        html5Player.pause();
-    } else {
-        document.getElementById('video-player').style.display = 'none';
-        document.getElementById('html5-player').style.display = 'block';
+        yt.style.display = 'block';
+        h5.pause();
+    } else if (mode === 'file') {
+        h5.style.display = 'block';
+        if (ytPlayer && ytPlayer.pauseVideo) ytPlayer.pauseVideo();
+    } else if (mode === 'screen') {
+        sc.style.display = 'block';
+        h5.pause();
         if (ytPlayer && ytPlayer.pauseVideo) ytPlayer.pauseVideo();
     }
 }
@@ -475,6 +490,10 @@ socket.on('roomInitialSync', (data) => {
     } else if (data.type === 'file') {
         switchMode('file');
         playFile(data.url, data.subtitleUrl);
+    } else if (data.type === 'screen') {
+        console.log("[SCREEN] Late-join: Setting remote screen stream ID:", data.streamId);
+        remoteScreenStreamId = data.streamId;
+        switchMode('screen');
     }
 });
 
@@ -846,6 +865,13 @@ socket.on('user-connected-video', async ({ socketId, name }) => {
     const peer = createPeer(socketId, socket.id, name);
     peers[socketId] = peer;
     localStream.getTracks().forEach(track => peer.addTrack(track, localStream));
+
+    // If sharing screen, add that track too
+    if (isSharingScreen && screenStream) {
+        console.log("[SCREEN] Adding screen track to new peer:", name);
+        screenStream.getTracks().forEach(track => peer.addTrack(track, screenStream));
+    }
+
     const offer = await peer.createOffer();
     await peer.setLocalDescription(offer);
     socket.emit('offer', { target: socketId, caller: socket.id, callerName: userName, sdp: peer.localDescription });
@@ -858,6 +884,12 @@ socket.on('offer', async (payload) => {
     const peer = createPeer(payload.caller, socket.id, payload.callerName);
     peers[payload.caller] = peer;
     localStream.getTracks().forEach(track => peer.addTrack(track, localStream));
+
+    // If also sharing screen (unlikely for guest but supporting)
+    if (isSharingScreen && screenStream) {
+        screenStream.getTracks().forEach(track => peer.addTrack(track, screenStream));
+    }
+
     await peer.setRemoteDescription(payload.sdp);
     const answer = await peer.createAnswer();
     await peer.setLocalDescription(answer);
@@ -912,12 +944,24 @@ function createPeer(targetSocketId, mySocketId, targetName = 'User') {
         }
     };
     peer.ontrack = (e) => {
+        const stream = e.streams[0];
+
+        // If this track belongs to the remote screen stream
+        if (remoteScreenStreamId && stream.id === remoteScreenStreamId) {
+            console.log("[SCREEN] Received remote screen share track");
+            const scPlayer = document.getElementById('screen-player');
+            scPlayer.srcObject = stream;
+            switchMode('screen');
+            scPlayer.play().catch(e => console.error(e));
+            return;
+        }
+
         let bubble = document.getElementById(`bubble-${targetSocketId}`);
         if (bubble) {
             const vid = bubble.querySelector('video');
             const placeholder = bubble.querySelector('.avatar-placeholder');
             if (vid) {
-                vid.srcObject = e.streams[0];
+                vid.srcObject = stream;
                 vid.style.display = 'block';
                 if (placeholder) placeholder.style.display = 'none';
                 vid.onloadedmetadata = () => vid.play().catch(e => console.error(e));
@@ -926,6 +970,85 @@ function createPeer(targetSocketId, mySocketId, targetName = 'User') {
     };
     return peer;
 }
+
+// --- SCREEN SHARE LOGIC ---
+async function toggleScreenShare() {
+    if (!isSharingScreen) {
+        await startScreenShare();
+    } else {
+        stopScreenShare();
+    }
+}
+
+async function startScreenShare() {
+    try {
+        screenStream = await navigator.mediaDevices.getDisplayMedia({
+            video: true,
+            audio: true
+        });
+
+        isSharingScreen = true;
+        document.getElementById('btn-screen-share').classList.add('active');
+
+        // Switch to screen mode locally
+        switchMode('screen');
+        document.getElementById('screen-player').srcObject = screenStream;
+
+        // Notify room
+        socket.emit('startScreenShare', { roomCode, streamId: screenStream.id });
+
+        // Add track to all peers
+        const videoTrack = screenStream.getVideoTracks()[0];
+        Object.values(peers).forEach(peer => {
+            peer.addTrack(videoTrack, screenStream);
+            // Re-negotiate
+            peer.createOffer().then(offer => {
+                peer.setLocalDescription(offer);
+                socket.emit('offer', { target: peer.targetSocketId, caller: socket.id, sdp: offer, isScreen: true });
+            });
+        });
+
+        // Handle manual stop (from browser bar)
+        videoTrack.onended = () => {
+            if (isSharingScreen) stopScreenShare();
+        };
+
+        showToast("Screen sharing started!", "success");
+
+    } catch (err) {
+        console.error("Screen share error:", err);
+        showToast("Failed to start screen share", "error");
+    }
+}
+
+function stopScreenShare() {
+    if (screenStream) {
+        screenStream.getTracks().forEach(track => track.stop());
+        screenStream = null;
+    }
+    isSharingScreen = false;
+    document.getElementById('btn-screen-share').classList.remove('active');
+
+    // Notify room
+    socket.emit('stopScreenShare', { roomCode });
+
+    // Revert to YouTube or previous mode
+    switchMode('youtube');
+    showToast("Screen sharing stopped.");
+}
+
+socket.on('startScreenShare', (data) => {
+    console.log("[SCREEN] Host started screen share:", data.streamId);
+    remoteScreenStreamId = data.streamId;
+    // The actual stream attachment happens in ontrack
+});
+
+socket.on('stopScreenShare', () => {
+    console.log("[SCREEN] Screen share stopped");
+    remoteScreenStreamId = null;
+    document.getElementById('screen-player').srcObject = null;
+    switchMode('youtube');
+});
 
 // --- DRAG & DROP LOGIC for Main Container ---
 const dragItem = document.getElementById('video-chat-container');

@@ -791,6 +791,18 @@ io.on('connection', (socket) => {
     socket.to(roomCode).emit('user-disconnected-video', socket.id);
   });
 
+  // Screen Share Events
+  socket.on('startScreenShare', (data) => {
+    socket.to(data.roomCode).emit('startScreenShare', data);
+    // Persist for late joiners
+    roomMediaStates.set(data.roomCode, { type: 'screen', ...data });
+  });
+
+  socket.on('stopScreenShare', (data) => {
+    socket.to(data.roomCode).emit('stopScreenShare');
+    roomMediaStates.delete(data.roomCode);
+  });
+
   // Reaction System
   socket.on('reaction', async ({ roomCode, emoji }) => {
     io.to(roomCode).emit('reaction', { emoji });

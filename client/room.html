@@ -312,6 +312,7 @@
         <div id="video-player" style="height:100%; width:100%;"></div>
         <!-- Remove 'controls' attribute by default -->
         <video id="html5-player" style="width:100%; height:100%; display:none;"></video>
+        <video id="screen-player" style="width:100%; height:100%; display:none;" autoplay playsinline></video>
 
         <!-- GUEST OVERLAY (Blocks interaction) -->
         <div id="guest-overlay"
@@ -405,6 +406,8 @@
       <div style="display:flex; gap:15px; align-items:center; position:absolute; left:50%; transform:translateX(-50%);">
         <button id="btn-users" class="icon-btn" onclick="togglePanel('user-panel')" title="Users">👥</button>
         <button id="btn-chat" class="icon-btn" onclick="togglePanel('chat-panel')" title="Chat">💬</button>
+        <!-- Screen Share -->
+        <button id="btn-screen-share" class="icon-btn" onclick="toggleScreenShare()" title="Share Screen">📺</button>
         <!-- Highlight Toggle -->
         <button id="btn-highlight" class="icon-btn" onclick="startHighlighting()" style="display:none;"
           title="Enable Highlights">⚪</button>
