@@ -21,13 +21,16 @@ Since we have a `render.yaml` file, you can use Render's **Blueprints** feature 
 5. Click **Apply**.
 
 ## Step 3: Configure Environment Variables
-During the **Apply** step of the Blueprint, or immediately after in the **Web Service** (framesync-backend) settings:
+During the **Apply** step of the Blueprint, you will be prompted for several values. Paste them as follows:
 
-1. Add your **Neon DATABASE_URL** (Copy this from your local `server/.env`).
-2. Verify these other variables:
-   - `JWT_SECRET`: (Should be generated automatically).
-   - `FRONTEND_URL`: Set this to your **Render Static Site URL** (e.g., `https://framesync-frontend.onrender.com`).
-3. Click **Save Changes**.
+- **DATABASE_URL**: (Your Neon DB URL)
+- **SERVER_URL**: `https://framesync-backend.onrender.com`
+- **FRONTEND_URL**: `https://framesync-frontend.onrender.com`
+- **EMAIL_USER**: `hmanagha07@gmail.com`
+- **EMAIL_PASS**: `hycs otie qoyc gfir`
+- **TMDB_API_KEY**: `585c8db9ec956b0d0598337137a3fc35`
+
+Click **Save Changes** or **Apply** to start the deployment.
 
 ## Step 4: Authorize Google Domains
 1. Go to [Google Cloud Console](https://console.cloud.google.com/).

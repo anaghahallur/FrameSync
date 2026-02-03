@@ -17,6 +17,12 @@ services:
         sync: false
       - key: FRONTEND_URL
         sync: false
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_PASS
+        sync: false
+      - key: TMDB_API_KEY
+        sync: false
     healthCheckPath: /
 
   # --- FRONTEND: Static Site ---
