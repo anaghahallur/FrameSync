@@ -268,11 +268,7 @@
       <div class="tagline">Watch Together</div>
       <p class="subtitle">Perfectly synced YouTube rooms with friends</p>
 
-      <div class="primary-actions">
-        <button class="primary-btn" id="get-started-btn">Get Started</button>
-      </div>
-
-      <div class="google-buttons">
+      <div class="primary-actions" style="display: flex; justify-content: center; margin-top: 20px;">
         <div id="google_login_button"></div>
       </div>
 
@@ -309,31 +305,6 @@
         alert("Login failed: " + err.message);
       }
     }
-
-    function triggerGoogleFlow() {
-      console.log("🖱️ 'Get Started' clicked, attempting to trigger Google Sign-in...");
-      // Try multiple selectors as Google library can be dynamic
-      const googleBtn = document.getElementById("google_login_button");
-      const target = googleBtn.querySelector('div[role="button"]') ||
-        googleBtn.querySelector('iframe') ||
-        googleBtn.firstChild;
-
-      if (target) {
-        console.log("🎯 Google button found, triggering...");
-        target.focus();
-        if (target.click) target.click();
-      } else {
-        console.error("🚫 Google sign-in button not found in DOM");
-        alert('Google sign-in is still loading. Please try again in a moment or click the Google button directly below.');
-      }
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-      const getStartedBtn = document.getElementById('get-started-btn');
-      if (getStartedBtn) {
-        getStartedBtn.addEventListener('click', triggerGoogleFlow);
-      }
-    });
 
     window.onload = () => {
       function initGoogle() {
