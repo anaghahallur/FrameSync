@@ -76,6 +76,8 @@
         <div class="status-option" data-status="watching">Watching</div>
         <div class="status-option" data-status="dnd">Do not disturb</div>
         <div class="status-option" data-status="silent">Silent</div>
+        <div class="status-option" onclick="logout()" style="border-top: 1px solid #333; color: #ff3366 !important;">
+          Logout</div>
       </div>
     </div>
     </div>
@@ -822,6 +824,17 @@
         fetchFriends();
       }
     });
+
+    function logout() {
+      if (confirm("Are you sure you want to logout?")) {
+        const uId = localStorage.getItem('userId');
+        if (uId) {
+          socket.emit('updateStatus', { userId: uId, status: 'offline' });
+        }
+        localStorage.clear();
+        location.href = "index.html";
+      }
+    }
 
     let currentCode = '';
     let roomType = 'private';

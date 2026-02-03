@@ -362,6 +362,7 @@
         }
     </style>
     <script src="config.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
 
 <body>
@@ -757,14 +758,14 @@
                         }[f.status] || '#444';
 
                         return `
-                        <div style="background:var(--bg-panel); padding:15px; border-radius:12px; display:flex; align-items:center; gap:12px; border:1px solid var(--border); position:relative;">
+                        <div class="friend-card" data-userid="${f.id}" style="background:var(--bg-panel); padding:15px; border-radius:12px; display:flex; align-items:center; gap:12px; border:1px solid var(--border); position:relative;">
                             <div style="position:relative; width:40px; height:40px;">
                                 <img src="${avatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover; border:2px solid var(--accent);">
-                                <div style="position:absolute; bottom:0; right:0; width:12px; height:12px; background:${statusColor}; border-radius:50%; border:2px solid var(--bg-panel);"></div>
+                                <div class="status-dot" style="position:absolute; bottom:0; right:0; width:12px; height:12px; background:${statusColor}; border-radius:50%; border:2px solid var(--bg-panel);"></div>
                             </div>
                             <div style="display:flex; flex-direction:column;">
                                 <span style="font-weight:600; font-size:0.95rem;">${f.name}</span>
-                                <span style="font-size:0.75rem; color:#888; text-transform:capitalize;">${f.status || 'offline'}</span>
+                                <span class="status-text" style="font-size:0.75rem; color:#888; text-transform:capitalize;">${f.status || 'offline'}</span>
                             </div>
                         </div>
                     `}).join('');
@@ -796,6 +797,10 @@
 
         function logout() {
             if (confirm("Are you sure you want to logout?")) {
+                const uId = localStorage.getItem('userId');
+                if (uId && typeof socket !== 'undefined') {
+                    socket.emit('updateStatus', { userId: uId, status: 'offline' });
+                }
                 localStorage.clear();
                 location.href = "index.html";
             }
@@ -829,8 +834,36 @@
                 alert("Server error during deletion.");
             }
         }
-    </script>
 
+        // Initialize Socket
+        const socket = io(CONFIG.SOCKET_URL);
+        const initialStatus = localStorage.getItem('userStatus') || 'available';
+        if (uId) {
+            socket.emit('updateStatus', { userId: uId, status: initialStatus });
+        }
+
+        // Real-time Status Updates
+        socket.on('statusUpdate', ({ userId, status }) => {
+            console.log(`[DEBUG] Received real-time status update in Profile: ${userId} -> ${status}`);
+
+            const statusColor = {
+                'available': '#2ecc71',
+                'watching': '#f1c40f',
+                'dnd': '#e74c3c',
+                'silent': '#95a5a6',
+                'offline': '#444'
+            }[status] || '#444';
+
+            const card = document.querySelector(`.friend-card[data-userid="${userId}"]`);
+            if (card) {
+                const dot = card.querySelector('.status-dot');
+                const text = card.querySelector('.status-text');
+                if (dot) dot.style.background = statusColor;
+                if (text) text.innerText = status;
+                console.log(`[DEBUG] Surgically updated Profile UI for user ${userId}`);
+            }
+        });
+    </script>
 </body>
 
 </html>

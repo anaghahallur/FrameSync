@@ -203,6 +203,8 @@
           <div class="status-option" data-status="watching">Watching</div>
           <div class="status-option" data-status="dnd">Do not disturb</div>
           <div class="status-option" data-status="silent">Silent</div>
+          <div class="status-option" onclick="logout()" style="border-top: 1px solid #333; color: #ff3366 !important;">
+            Logout</div>
         </div>
       </div>
     </div>
@@ -340,8 +342,36 @@
       document.body.classList.add('status-' + (localStorage.getItem('userStatus') || 'available'));
       document.addEventListener('click', () => menu.classList.remove('show'));
 
+      // Sync Status
+      syncStatusToServer(localStorage.getItem('userStatus') || 'available');
+
       // Fetch public rooms
       socket.emit('getPublicRooms');
+    });
+
+    function syncStatusToServer(status) {
+      const uId = localStorage.getItem('userId');
+      if (uId) {
+        socket.emit('updateStatus', { userId: uId, status });
+      }
+    }
+
+    function logout() {
+      if (confirm("Are you sure you want to logout?")) {
+        const uId = localStorage.getItem('userId');
+        if (uId) {
+          socket.emit('updateStatus', { userId: uId, status: 'offline' });
+        }
+        localStorage.clear();
+        location.href = "index.html";
+      }
+    }
+
+    // Real-time Status Updates
+    socket.on('statusUpdate', ({ userId, status }) => {
+      console.log(`[DEBUG] Received status update in Public: ${userId} -> ${status}`);
+      // Since public.html doesn't have a friend grid, this is just for internal state or
+      // if we add a notification later. For now, it ensures the socket is active.
     });
 
     // --- NAVIGATION LOGIC ---

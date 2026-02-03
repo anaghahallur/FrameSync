@@ -503,6 +503,9 @@ const publicRooms = new Map();
 // Store user statuses: key=userId, value=status string
 const userStatuses = new Map();
 
+// Store active connections per user: key=userId, value=Set of socketIds
+const userConnections = new Map();
+
 // Store room media state: key=roomCode, value={ type: 'youtube'|'file', ...data }
 const roomMediaStates = new Map();
 
@@ -514,9 +517,16 @@ io.on('connection', (socket) => {
   socket.on('updateStatus', ({ userId, status }) => {
     if (userId) {
       const uIdStr = userId.toString();
+
+      // Track connection
+      if (!userConnections.has(uIdStr)) {
+        userConnections.set(uIdStr, new Set());
+      }
+      userConnections.get(uIdStr).add(socket.id);
+
       userStatuses.set(uIdStr, status);
       socket.data.userId = uIdStr; // Ensure ID is on socket for disconnect
-      console.log(`[DEBUG] Status updated for User ${uIdStr}: ${status}`);
+      console.log(`[DEBUG] Status updated for User ${uIdStr}: ${status} (Sessions: ${userConnections.get(uIdStr).size})`);
 
       // Broadcast to everyone else
       io.emit('statusUpdate', { userId: uIdStr, status });
@@ -836,10 +846,22 @@ io.on('connection', (socket) => {
     const userId = socket.data.userId;
     if (userId) {
       const uIdStr = userId.toString();
-      userStatuses.set(uIdStr, 'offline');
 
-      // Broadcast offline status
-      io.emit('statusUpdate', { userId: uIdStr, status: 'offline' });
+      // Remove this specific connection
+      if (userConnections.has(uIdStr)) {
+        const connections = userConnections.get(uIdStr);
+        connections.delete(socket.id);
+
+        console.log(`[DEBUG] Session ended for ${uIdStr}. Remaining sessions: ${connections.size}`);
+
+        // Only set offline if NO connections remain
+        if (connections.size === 0) {
+          userStatuses.set(uIdStr, 'offline');
+          userConnections.delete(uIdStr);
+          io.emit('statusUpdate', { userId: uIdStr, status: 'offline' });
+          console.log(`[DEBUG] User ${uIdStr} is now fully offline.`);
+        }
+      }
 
       // Track watch time on disconnect
       if (socket.data.sessionStart) {
