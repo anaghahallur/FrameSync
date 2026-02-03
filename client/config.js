@@ -2,7 +2,7 @@
 // This file automatically detects the environment and sets the API/Socket URLs.
 
 // --- CONFIGURATION ---
-const PROD_SERVER_URL = 'https://framesync-sf6o.onrender.com'; // Your Render Web Service URL
+const PROD_SERVER_URL = 'https://framesync-backend.onrender.com'; // Your Render Web Service URL
 const DEV_SERVER_URL = 'http://localhost:3000';
 // ---------------------
 
