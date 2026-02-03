@@ -21,11 +21,10 @@ Since we have a `render.yaml` file, you can use Render's **Blueprints** feature 
 5. Click **Apply**.
 
 ## Step 3: Configure Environment Variables
-After the deployment starts, go to the **Web Service** (framesync-backend) in your Render dashboard:
+During the **Apply** step of the Blueprint, or immediately after in the **Web Service** (framesync-backend) settings:
 
-1. Click **Environment**.
-2. Add/Verify these variables:
-   - `DATABASE_URL`: (Should be linked to your Neon DB).
+1. Add your **Neon DATABASE_URL** (Copy this from your local `server/.env`).
+2. Verify these other variables:
    - `JWT_SECRET`: (Should be generated automatically).
    - `FRONTEND_URL`: Set this to your **Render Static Site URL** (e.g., `https://framesync-frontend.onrender.com`).
 3. Click **Save Changes**.
