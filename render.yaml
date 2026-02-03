@@ -1,22 +1,18 @@
 services:
+  # --- BACKEND: Web Service ---
   - type: web
     name: framesync-backend
-    env: node
-    region: oregon
+    runtime: node
     plan: free
-    buildCommand: cd server && npm install
-    startCommand: cd server && npm start
+    buildCommand: npm install
+    startCommand: node server/server.js
     envVars:
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: framesync_db
+          property: connectionString
       - key: JWT_SECRET
-        sync: false
-      - key: EMAIL_USER
-        sync: false
-      - key: EMAIL_PASS
-        sync: false
-      - key: TMDB_API_KEY
-        sync: false
+        generateValue: true
       - key: NODE_ENV
         value: production
       - key: SERVER_URL
@@ -25,3 +21,13 @@ services:
         sync: false
     healthCheckPath: /
 
+  # --- FRONTEND: Static Site ---
+  - type: static
+    name: framesync-frontend
+    runtime: static
+    plan: free
+    buildCommand: "" # No build step for static HTML/JS
+    publishPath: client # Serve files from the client folder
+    envVars:
+      - key: SERVER_URL
+        value: https://framesync-backend.onrender.com # Update this after first backend deploy

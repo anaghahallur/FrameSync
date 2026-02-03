@@ -1,22 +1,21 @@
 // FrameSync Client Configuration
-// This file reads the SERVER_URL from the environment
-// 
-// IMPORTANT: Since browsers can't read .env files, you need to manually
-// update the SERVER_URL below when deploying:
-// 
-// Development: 'http://localhost:3000'
-// Production:  '' (empty string to use Netlify proxy)
-//           OR 'https://your-backend.onrender.com'
+// This file automatically detects the environment and sets the API/Socket URLs.
 
-// ============================================
-// UPDATE THIS WHEN DEPLOYING
-// ============================================
-const SERVER_URL = '';  // Change to '' for production
-// ============================================
+// --- CONFIGURATION ---
+const PROD_SERVER_URL = 'https://framesync-sf6o.onrender.com'; // Your Render Web Service URL
+const DEV_SERVER_URL = 'http://localhost:3000';
+// ---------------------
+
+// Auto-detect environment
+const isDevelopment = window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    window.location.hostname === '';
+
+const SERVER_URL = isDevelopment ? DEV_SERVER_URL : PROD_SERVER_URL;
 
 const CONFIG = {
     API_URL: SERVER_URL,
-    SOCKET_URL: SERVER_URL || window.location.origin,
+    SOCKET_URL: SERVER_URL,
 };
 
 // Helper function to build API endpoint URLs
@@ -27,6 +26,7 @@ CONFIG.getApiUrl = function (endpoint) {
 
 // Log current configuration (helpful for debugging)
 console.log('🔧 FrameSync Config:', {
+    Environment: isDevelopment ? 'Development' : 'Production',
     SERVER_URL: SERVER_URL,
     API_URL: CONFIG.API_URL,
     SOCKET_URL: CONFIG.SOCKET_URL
