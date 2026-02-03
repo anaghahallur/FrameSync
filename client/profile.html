@@ -799,10 +799,22 @@
             if (confirm("Are you sure you want to logout?")) {
                 const uId = localStorage.getItem('userId');
                 if (uId && typeof socket !== 'undefined') {
-                    socket.emit('updateStatus', { userId: uId, status: 'offline' });
+                    // Wait for acknowledgement before redirecting
+                    socket.emit('updateStatus', { userId: uId, status: 'offline' }, (res) => {
+                        console.log("[DEBUG] Logout status broadcasted:", res);
+                        localStorage.clear();
+                        location.href = "index.html";
+                    });
+
+                    // Fallback redirect after 1.5s in case socket fails
+                    setTimeout(() => {
+                        localStorage.clear();
+                        location.href = "index.html";
+                    }, 1500);
+                } else {
+                    localStorage.clear();
+                    location.href = "index.html";
                 }
-                localStorage.clear();
-                location.href = "index.html";
             }
         }
 
@@ -838,6 +850,7 @@
         // Initialize Socket
         const socket = io(CONFIG.SOCKET_URL);
         const initialStatus = localStorage.getItem('userStatus') || 'available';
+        const uId = localStorage.getItem('userId'); // Added missing uId declaration
         if (uId) {
             socket.emit('updateStatus', { userId: uId, status: initialStatus });
         }

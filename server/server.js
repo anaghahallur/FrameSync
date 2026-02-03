@@ -514,7 +514,7 @@ io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
   // Handle status updates
-  socket.on('updateStatus', ({ userId, status }) => {
+  socket.on('updateStatus', ({ userId, status }, callback) => {
     if (userId) {
       const uIdStr = userId.toString();
 
@@ -530,6 +530,8 @@ io.on('connection', (socket) => {
 
       // Broadcast to everyone else
       io.emit('statusUpdate', { userId: uIdStr, status });
+
+      if (callback) callback({ success: true });
     }
   });
 

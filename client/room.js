@@ -537,17 +537,32 @@ function sendMessage() {
 function leaveRoom() {
     socket.emit('leaveRoom', roomCode);
 
-    if (isHost && highlightClips.length > 0) {
-        // If Host has highlights, show modal and wait for close to redirect
-        if (streamReference) {
-            stopHighlighting();
+    const uId = localStorage.getItem('userId');
+    const onSyncAndLeave = () => {
+        if (isHost && highlightClips.length > 0) {
+            if (streamReference) {
+                stopHighlighting();
+            }
+            finalizeHighlightReel();
+            return;
         }
-        finalizeHighlightReel();
-        return;
-    }
 
-    sessionStorage.removeItem('isHost');
-    location.href = 'dashboard.html';
+        sessionStorage.removeItem('isHost');
+        location.href = 'dashboard.html';
+    };
+
+    if (uId) {
+        // Reset status to 'available' and wait for acknowledgement
+        socket.emit('updateStatus', { userId: uId, status: 'available' }, (res) => {
+            console.log("[DEBUG] Status reset before leaving room:", res);
+            onSyncAndLeave();
+        });
+
+        // Fallback redirect after 1.5s
+        setTimeout(onSyncAndLeave, 1500);
+    } else {
+        onSyncAndLeave();
+    }
 }
 
 // Toast Function
