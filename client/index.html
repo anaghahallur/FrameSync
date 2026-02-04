@@ -268,7 +268,8 @@
       <div class="tagline">Watch Together</div>
       <p class="subtitle">Perfectly synced YouTube rooms with friends</p>
 
-      <div class="primary-actions" style="display: flex; justify-content: center; margin-top: 20px;">
+      <div class="primary-actions"
+        style="display: flex; justify-content: center; align-items: center; margin-top: 20px; min-height: 50px;">
         <div id="google_login_button"></div>
       </div>
 
@@ -314,7 +315,7 @@
             callback: handleCredentialResponse
           });
           google.accounts.id.renderButton(document.getElementById("google_login_button"), {
-            theme: "outline", size: "large", text: "signin_with", shape: "pill"
+            theme: "outline", size: "large", text: "signin_with", shape: "pill", width: 280
           });
           console.log("✅ Google Sign-in initialized");
         } else {
