@@ -206,6 +206,12 @@ if (isHost) {
 }
 
 // YouTube Player Setup
+// Load the IFrame Player API code asynchronously.
+var tag = document.createElement('script');
+tag.src = "https://www.youtube.com/iframe_api";
+var firstScriptTag = document.getElementsByTagName('script')[0];
+firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
 function onYouTubeIframeAPIReady() {
     ytPlayer = new YT.Player('video-player', {
         height: '100%',
@@ -319,7 +325,7 @@ async function uploadFiles() {
     showToast("Uploading...", "info");
 
     try {
-        const res = await fetch('/api/upload', { method: 'POST', body: formData });
+        const res = await fetch(CONFIG.getApiUrl('/api/upload'), { method: 'POST', body: formData });
         const data = await res.json();
 
         if (data.url) {
