@@ -1,37 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FrameSync – Welcome</title>
+  <title>FrameSync – Watch Together</title>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;700;800;900&display=swap');
-
-    /* ------------------------------------------------------
-   FRAME SYNC — PROFESSIONAL OTT THEME
-   Black • Dark Grey • Netflix Red
-   (Welcome / Login / Signup Page)
--------------------------------------------------------- */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap');
 
     :root {
       --bg-main: #0A0A0A;
-      /* pure black */
-      --bg-card: #141414;
-      /* Netflix card grey */
+      --bg-alt: #121212;
+      --bg-card: rgba(20, 20, 20, 0.7);
       --bg-panel: #1A1A1A;
 
       --text-main: #FFFFFF;
-      --text-muted: #B3B3B3;
+      --text-muted: #A0A0A0;
 
-      --accent: #E50914;
-      /* Netflix red */
+      --accent: #E50914; /* Netflix red */
       --accent-hover: #F6121D;
+      --accent-glow: rgba(229, 9, 20, 0.4);
 
-      --border: #2A2A2A;
-
-      --shadow-soft: 0 2px 12px rgba(0, 0, 0, 0.55);
+      --border: rgba(255, 255, 255, 0.08);
     }
 
     /* RESET */
@@ -39,246 +29,342 @@
       margin: 0;
       padding: 0;
       box-sizing: border-box;
+      scroll-behavior: smooth;
     }
 
     body {
-      background: radial-gradient(circle at top, rgba(229, 9, 20, 0.08), transparent 45%), var(--bg-main);
-      min-height: 100vh;
+      background-color: var(--bg-main);
+      color: var(--text-main);
       font-family: 'Inter', sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 20px;
-      color: var(--text-main);
-      position: relative;
-      overflow: hidden;
-    }
-
-    body::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(circle at 20% 20%, rgba(229, 9, 20, 0.08), transparent 55%);
-      opacity: 0.8;
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .container,
-    .card,
-    .form-screen {
-      position: relative;
-      z-index: 1;
-    }
-
-    /* -----------------------------------------
-   MAIN WELCOME CARD
------------------------------------------- */
-
-    .card {
-      background: var(--bg-card);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      border-radius: 24px;
-      padding: 60px 45px;
-      text-align: center;
-      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.45);
-      transition: transform 0.35s ease, box-shadow 0.35s ease;
-      position: relative;
-      overflow: hidden;
-      z-index: 0;
-    }
-
-    .card:hover {
-      transform: translateY(-6px);
-      box-shadow: 0 35px 80px rgba(0, 0, 0, 0.65);
-    }
-
-    .card::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(120deg, rgba(229, 9, 20, 0.08), transparent 60%);
-      opacity: 0.8;
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .card>* {
-      position: relative;
-      z-index: 1;
-    }
-
-    /* LOGO */
-    .hero-name {
-      font-size: 3.2rem;
-      font-weight: 900;
-      letter-spacing: 0.1rem;
-      margin-bottom: 16px;
-      color: var(--text-main);
-      text-transform: none;
-    }
-
-    .hero-name::after {
-      content: '';
-      display: block;
-      width: 80px;
-      height: 2px;
-      margin: 16px auto 0;
-      background: linear-gradient(90deg, var(--accent), transparent);
-      opacity: 0.7;
-    }
-
-    /* HEADINGS */
-    h1 {
-      font-size: 2.7rem;
-      font-weight: 900;
-      color: var(--accent);
-    }
-
-    .tagline {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.6rem;
-      font-size: 1rem;
-      font-weight: 700;
-      letter-spacing: 0.25rem;
-      text-transform: uppercase;
-      padding: 0.45rem 1.1rem;
-      border-radius: 999px;
-      background: rgba(229, 9, 20, 0.12);
-      color: var(--text-main);
-    }
-
-    .tagline::before,
-    .tagline::after {
-      content: '';
-      width: 16px;
-      height: 2px;
-      background: rgba(229, 9, 20, 0.6);
-      border-radius: 1px;
-    }
-
-    .subtitle {
-      color: var(--text-muted);
-      font-size: 1.1rem;
-      margin-top: 18px;
-      margin-bottom: 40px;
-      max-width: 320px;
-      margin-left: auto;
-      margin-right: auto;
+      overflow-x: hidden;
       line-height: 1.6;
     }
 
-    /* PRIMARY ACTIONS */
-    .primary-actions {
+    /* -------------------------------------
+       NAVBAR
+       ------------------------------------- */
+    nav {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      height: 70px;
+      background: rgba(10, 10, 10, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      z-index: 1000;
       display: flex;
-      flex-direction: column;
-      gap: 18px;
-      margin-bottom: 34px;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 5%;
+      transition: background 0.3s ease;
     }
 
-    .primary-btn {
-      background: radial-gradient(circle at top, rgba(229, 9, 20, 0.14), transparent 65%);
-      border: 1px solid rgba(229, 9, 20, 0.55);
+    .nav-logo {
+      font-size: 1.8rem;
+      font-weight: 900;
       color: var(--accent);
-      padding: 16px 36px;
+      letter-spacing: -0.5px;
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .nav-link {
+      color: var(--text-main);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.95rem;
+      transition: color 0.2s;
+    }
+
+    .nav-link:hover {
+      color: var(--accent);
+    }
+
+    .btn-login {
+      background: var(--accent);
+      color: white;
+      padding: 10px 24px;
       border-radius: 999px;
       font-weight: 700;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: 0.3s ease;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px var(--accent-glow);
+    }
+
+    .btn-login:hover {
+      background: var(--accent-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px var(--accent-glow);
+    }
+
+    /* -------------------------------------
+       HERO SECTION
+       ------------------------------------- */
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 120px 20px 60px;
+      background: radial-gradient(circle at 50% 30%, rgba(229, 9, 20, 0.15), transparent 60%);
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" opacity="0.03"><rect width="100%" height="100%" fill="url(%23g)"/><defs><pattern id="g" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="%23fff" stroke-width="1"/></pattern></defs></svg>');
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .hero h1 {
+      font-size: clamp(3rem, 6vw, 5rem);
+      font-weight: 900;
+      line-height: 1.1;
+      margin-bottom: 20px;
+      letter-spacing: -1px;
+      background: linear-gradient(180deg, #FFFFFF 0%, #A0A0A0 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: fadeInUp 0.8s ease-out forwards;
+      opacity: 0;
+      transform: translateY(30px);
+    }
+
+    .hero p {
+      font-size: clamp(1.1rem, 2vw, 1.4rem);
+      color: var(--text-muted);
+      max-width: 600px;
+      margin-bottom: 40px;
+      animation: fadeInUp 0.8s ease-out 0.2s forwards;
+      opacity: 0;
+      transform: translateY(30px);
+    }
+
+    .login-container {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+      animation: fadeInUp 0.8s ease-out 0.4s forwards;
+      opacity: 0;
+      transform: translateY(30px);
+    }
+
+    .login-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: var(--text-main);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    /* Google Button Wrapper to ensure perfect centering */
+    .google-btn-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 44px;
+    }
+
+    /* -------------------------------------
+       FEATURES SECTION
+       ------------------------------------- */
+    .features {
+      padding: 100px 5%;
+      background: var(--bg-alt);
+      position: relative;
+    }
+
+    .section-title {
+      text-align: center;
+      font-size: 2.5rem;
+      font-weight: 900;
+      margin-bottom: 60px;
+      color: var(--text-main);
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 30px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px 30px;
+      text-align: left;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
       position: relative;
       overflow: hidden;
     }
 
-    .primary-btn::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(135deg, rgba(229, 9, 20, 0.35), rgba(246, 18, 29, 0.08));
-      opacity: 0;
-      transition: opacity 0.3s ease;
-      pointer-events: none;
+    .feature-card:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+      border-color: rgba(229, 9, 20, 0.3);
     }
 
-    .primary-btn:hover {
-      color: #fff;
-      border-color: var(--accent);
-      transform: translateY(-2px);
-      box-shadow: 0 10px 25px rgba(229, 9, 20, 0.25);
+    .feature-icon {
+      font-size: 2.5rem;
+      background: rgba(229, 9, 20, 0.1);
+      width: 60px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 14px;
+      color: var(--accent);
+      margin-bottom: 20px;
     }
 
-    .primary-btn:hover::after {
-      opacity: 1;
+    .feature-card h3 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 12px;
     }
 
-    .google-buttons {
-      position: absolute;
-      inset: -9999px;
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    /* FOOTER */
-    .footer {
-      margin-top: 40px;
+    .feature-card p {
       color: var(--text-muted);
-      font-size: 0.95rem;
+      font-size: 1rem;
     }
 
-    /* Mobile Responsiveness */
-    @media (max-width: 480px) {
-      .card {
-        padding: 40px 25px;
-        border-radius: 16px;
-      }
+    /* -------------------------------------
+       FOOTER
+       ------------------------------------- */
+    footer {
+      background: var(--bg-main);
+      padding: 40px 5%;
+      text-align: center;
+      border-top: 1px solid var(--border);
+    }
 
-      .hero-name {
-        font-size: 2.2rem;
-      }
+    footer p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
 
-      h1 {
-        font-size: 1.8rem;
+    /* -------------------------------------
+       ANIMATIONS
+       ------------------------------------- */
+    @keyframes fadeInUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
       }
+    }
 
-      .subtitle {
-        font-size: 1rem;
-        margin-bottom: 30px;
-      }
-
-      .primary-btn {
-        padding: 14px 28px;
-        font-size: 0.9rem;
-      }
-
-      .footer {
-        font-size: 0.8rem;
-        margin-top: 30px;
-      }
+    /* -------------------------------------
+       RESPONSIVENESS
+       ------------------------------------- */
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .hero { padding: 100px 15px 40px; }
+      .features { padding: 60px 15px; }
     }
   </style>
 </head>
-
 <body>
 
-  <!-- MAIN WELCOME SCREEN -->
-  <div class="container">
-    <div class="card" id="welcome-card">
-      <h1 class="hero-name">FrameSync</h1>
-      <div class="tagline">Watch Together</div>
-      <p class="subtitle">Perfectly synced YouTube rooms with friends</p>
+  <!-- Navigation -->
+  <nav>
+    <a href="#" class="nav-logo">FrameSync</a>
+    <div class="nav-links">
+      <a href="#features" class="nav-link">Features</a>
+      <a href="#login" class="btn-login" onclick="scrollToLogin(event)">Log In / Sign Up</a>
+    </div>
+  </nav>
 
-      <div class="primary-actions"
-        style="display: flex; justify-content: center; align-items: center; margin-top: 20px; min-height: 50px;">
+  <!-- Hero Section -->
+  <section class="hero" id="home">
+    <h1>Watch Together,<br>No Matter the Distance.</h1>
+    <p>Sync YouTube, local videos, and chat with your friends in real-time. Experience the ultimate online watch party.</p>
+    
+    <div class="login-container" id="login">
+      <div class="login-title">Get Started Now</div>
+      <div class="google-btn-wrapper">
         <div id="google_login_button"></div>
       </div>
-
-      <div class="footer">One click • Secure • No password needed with Google</div>
+      <p style="font-size: 0.8rem; margin: 15px 0 0 0; opacity: 1; transform: none; text-align: center; color: var(--text-muted);">
+        One click • Secure • Uninterrupted 
+      </p>
     </div>
-  </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="features" id="features">
+    <h2 class="section-title">Why FrameSync?</h2>
+    <div class="features-grid">
+      
+      <div class="feature-card">
+        <div class="feature-icon">📺</div>
+        <h3>Perfect Synchronization</h3>
+        <p>Whether it's a YouTube link or a local media file, playback is perfectly synced for everyone in the room down to the millisecond.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">💬</div>
+        <h3>Live Interactive Chat</h3>
+        <p>React to the crazy moments with live chat and floating emoji reactions. Stay connected without ever pausing the movie.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🎞️</div>
+        <h3>Highlights Reel</h3>
+        <p>Host screen-sharing sessions and let FrameSync automatically capture the best moments into a downloadable highlight reel.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🎙️</div>
+        <h3>Voice & WebRTC</h3>
+        <p>Connect your camera or mic for a fully immersive theater experience directly from your browser with zero latency.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">👥</div>
+        <h3>Friend Status System</h3>
+        <p>See exactly who is online, who is DND, and who is currently watching a movie, all in real-time directly on your dashboard.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <h3>Private & Secure</h3>
+        <p>Rooms are completely private. Join directly via room codes or invite friends seamlessly through your friend network.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <p>&copy; 2026 FrameSync. All rights reserved.</p>
+  </footer>
 
   <script src="config.js"></script>
   <script>
+    // Smooth scroll for nav button
+    function scrollToLogin(e) {
+      e.preventDefault();
+      document.getElementById('login').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    // Google Auth Logic
     async function handleCredentialResponse(response) {
       console.log("🔑 Google Credential received, authenticating with backend...");
       try {
@@ -292,7 +378,6 @@
         if (!res.ok) throw new Error(data.error || "Login failed");
 
         console.log("✅ Backend authentication successful!");
-        // Store Session Data
         localStorage.setItem("token", data.token);
         localStorage.setItem("userId", data.id);
         localStorage.setItem("userName", data.name);
@@ -308,6 +393,12 @@
     }
 
     window.onload = () => {
+      // Redirect if already logged in
+      if (localStorage.getItem("isLoggedIn") === "true") {
+        location.href = "dashboard.html";
+        return;
+      }
+
       function initGoogle() {
         if (typeof google !== 'undefined' && google.accounts) {
           google.accounts.id.initialize({
@@ -325,9 +416,7 @@
       }
 
       initGoogle();
-      if (localStorage.getItem("isLoggedIn") === "true") location.href = "dashboard.html";
     };
   </script>
 </body>
-
 </html>
